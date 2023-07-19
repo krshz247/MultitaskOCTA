@@ -300,8 +300,8 @@ def generate_dataset(train_file_names, val_file_names, batch_size, val_batch_siz
 
     train_dataset = DatasetImageMaskContourDist(train_file_names[:2], distance_type, train_mean, train_std, do_clahe)
     valid_dataset = DatasetImageMaskContourDist(val_file_names[:1], distance_type, train_mean, train_std, do_clahe)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2, shuffle=True, drop_last=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, num_workers=2, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=8, shuffle=True, drop_last=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, num_workers=4, shuffle=True)
 
     return train_loader, valid_loader
 
