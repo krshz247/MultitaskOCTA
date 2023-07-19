@@ -23,6 +23,7 @@ class LossMulti:
     def __call__(self, outputs, targets):
 
         targets = targets.squeeze(1)
+        outputs = outputs.squeeze(1)
         loss = (1 - self.jaccard_weight) * self.nll_loss(outputs, targets)
         if self.jaccard_weight:
             eps = 1e-7
@@ -107,7 +108,7 @@ class LossPsiNet:
 class My_multiLoss:
     def __init__(self, weights=[1, 1, 1]):   # weights=[1,1,1]
 
-        self.criterion1 = smp.utils.losses.DiceLoss()
+        self.criterion1 = smp.losses.DiceLoss(mode="binary")
         # self.criterion2 = smp.utils.losses.CrossEntropyLoss()
         # self.criterion2 = smp.utils.losses.BCEWithLogitsLoss()
         self.criterion2 = nn.MSELoss()

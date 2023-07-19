@@ -140,25 +140,25 @@ def load_class(path):
 def load_distance(path, distance_type):
 
     if distance_type == "dist_mask":
-        path = path.replace("image", "dis_mask").replace("png", "mat")
+        path = path.replace("image", "dist_mask").replace("png", "mat")
         # print (path)
         # print (io.loadmat(path))
         dist = io.loadmat(path)["dis"]
 
     if distance_type == "dist_contour":
-        path = path.replace("image", "dis_contour").replace("png", "mat")
+        path = path.replace("image", "dist_contour").replace("png", "mat")
         dist = io.loadmat(path)["c_dis"]
 
     if distance_type == "dist_signed01":
-        path = path.replace("image", "dis_signed01").replace("png", "mat")
+        path = path.replace("image", "dist_signed01").replace("png", "mat")
         dist = io.loadmat(path)["s_dis01"]
 
     if distance_type == "dist_signed11":
-        path = path.replace("image", "dis_signed11").replace("png", "mat")
+        path = path.replace("image", "dist_signed11").replace("png", "mat")
         dist = io.loadmat(path)["s_dis11"]
 
     if distance_type == "dist_fore":
-        path = path.replace("image", "dis_fore").replace("png", "mat")
+        path = path.replace("image", "dist_fore").replace("png", "mat")
         dist = io.loadmat(path)["f_dis"]
 
     return torch.from_numpy(np.expand_dims(dist, 0)).float()

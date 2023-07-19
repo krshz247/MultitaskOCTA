@@ -119,7 +119,7 @@ class AverageMeter(object):
         return fmtstr.format(**self.__dict__)
 
 
-def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, writer, loss_weights, startpoint, training=False):
+def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, loss_weights, startpoint, training=False):
     seg_losses = AverageMeter("Loss", ".16f")
     multi_losses = AverageMeter("multiLoss", ".16f")
     seg_dices = AverageMeter("Dice", ".8f")
@@ -169,7 +169,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, w
         # print(clf_outputs.shape, targets[3].shape)
         clf_labels = torch.argmax(targets[3], dim=2).squeeze(1)
         clf_preds = torch.argmax(clf_outputs, dim=1)
-        clf_loss = clf_criterion(clf_outputs, clf_labels)
+        clf_loss = clf_criterion(clf_outputs.squeeze().float(), targets[3].squeeze().float())
         kappa = cohen_kappa_score(clf_labels.detach().cpu().numpy(), clf_preds.detach().cpu().numpy())
         # print(targets[3])
         # print(clf_labels)
@@ -280,18 +280,22 @@ def main():
             # preprocess_input = get_preprocessing_fn(encoder, pretrain)
         else:
             pretrain = None
-            # preprocess_input = get_preprocessing_fn(encoder)
+
+        # preprocess_input = get_preprocessing_fn(encoder)
         # model = CotrainingModel(encoder, pretrain).to(device)
         model = CotrainingModelMulti(encoder, pretrain, usenorm, attention_type, args.classnum).to(device)
         logging.info(model)
+
         # seg_criterion = smp.utils.losses.DiceLoss()
         # seg_dice_criterion = smp.utils.losses.DiceLoss()
         # clf_criterion = smp.utils.losses.CrossEntropyLoss()
+        
         criterion = [
             define_loss(args.loss_type),
-            smp.utils.losses.DiceLoss(),
-            smp.utils.losses.JaccardLoss(),
-            smp.utils.losses.CrossEntropyLoss()
+            smp.losses.DiceLoss("binary"),
+            smp.losses.JaccardLoss("binary"),
+            # smp.losses.SoftCrossEntropyLoss(),
+            torch.nn.CrossEntropyLoss()
         ]
 
         optimizer = Adam([
@@ -322,8 +326,8 @@ def main():
         for epoch in range(epoch_start + 1, epoch_start + 1 + args.num_epochs):
 
             print('\nEpoch: {}'.format(epoch))
-            training_seg_loss, training_multi_loss, training_seg_dice, training_seg_jaccard, training_clf_loss, training_clf_acc, training_clf_kappa = seg_clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, writer, loss_weights, startpoint, training=True)
-            dev_seg_loss, dev_multi_loss, dev_seg_dice, dev_seg_jaccard, dev_clf_loss, dev_clf_acc, dev_clf_kappa = seg_clf_iteration(epoch, model, optimizer, criterion, devLoader, device, writer, loss_weights, startpoint, training=False)
+            training_seg_loss, training_multi_loss, training_seg_dice, training_seg_jaccard, training_clf_loss, training_clf_acc, training_clf_kappa = seg_clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, loss_weights, startpoint, training=True)
+            dev_seg_loss, dev_multi_loss, dev_seg_dice, dev_seg_jaccard, dev_clf_loss, dev_clf_acc, dev_clf_kappa = seg_clf_iteration(epoch, model, optimizer, criterion, devLoader, device, loss_weights, startpoint, training=False)
 
             epoch_info = "Epoch: {}".format(epoch)
             train_info = "TrainSeg Loss:{:.7f}, TrMutiLoss:{:.7f}, Dice: {:.7f}, Jaccard: {:.7f}, TrainClf Loss:{:.7f}, Acc: {:.7f}, Kappa:{:.7f}".format(training_seg_loss, training_multi_loss, training_seg_dice, training_seg_jaccard, training_clf_loss, training_clf_acc, training_clf_kappa)

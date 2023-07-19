@@ -184,13 +184,13 @@ def build_model(model_type, encoder, pretrain, aux=False):
 def define_loss(loss_type, weights=[3, 1, 2]):
 
     if loss_type == "jaccard":
-        criterion = smp.utils.losses.JaccardLoss()
+        criterion = smp.losses.JaccardLoss(mode='binary')
     if loss_type == "dice":
-        criterion = smp.utils.losses.DiceLoss()
+        criterion = smp.losses.DiceLoss(mode='binary')
     if loss_type == "ce":
-        criterion = smp.utils.losses.CrossEntropyLoss()
+        criterion = smp.losses.SoftCrossEntropyLoss(mode='multiclass')
     if loss_type == "bcewithlogit":
-        criterion = smp.utils.losses.BCEWithLogitsLoss()
+        criterion = smp.losses.SoftBCEWithLogitsLoss(mode='multiclass')
     if loss_type == "unet":
         criterion = LossUNet(weights)
     if loss_type == "dcan":
@@ -298,10 +298,10 @@ def visualize(device, epoch, model, data_loader, writer, val_batch_size, train=F
 def generate_dataset(train_file_names, val_file_names, batch_size, val_batch_size, distance_type, do_clahe):
     train_mean, train_std = mean_and_std(train_file_names)
 
-    train_dataset = DatasetImageMaskContourDist(train_file_names, distance_type, train_mean, train_std, do_clahe)
-    valid_dataset = DatasetImageMaskContourDist(val_file_names, distance_type, train_mean, train_std, do_clahe)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=8, shuffle=True, drop_last=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, num_workers=4, shuffle=True)
+    train_dataset = DatasetImageMaskContourDist(train_file_names[:2], distance_type, train_mean, train_std, do_clahe)
+    valid_dataset = DatasetImageMaskContourDist(val_file_names[:1], distance_type, train_mean, train_std, do_clahe)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2, shuffle=True, drop_last=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, num_workers=2, shuffle=True)
 
     return train_loader, valid_loader
 
@@ -345,7 +345,7 @@ def create_train_arg_parser():
         help="If use_pretrained is true, provide checkpoint.",
     )
     parser.add_argument("--save_path", type=str, help="Model save path.")
-    parser.add_argument("--encoder", type=str, default=None, help="encoder.")
+    parser.add_argument("--encoder", type=str, default="resnet34", help="encoder.")
     parser.add_argument("--pretrain", type=str, default=None, help="choose pretrain.")
     parser.add_argument("--loss_type", type=str, default=None, help="loss type.")
     parser.add_argument("--local_rank", default=0, type=int, help='node rank for distributed training')

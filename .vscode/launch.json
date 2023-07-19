@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--train_path", "/home/kourosh/Drive/Datasets/BSDA_net_dataset/train/image",
+                "--val_path",   "/home/kourosh/Drive/Datasets/BSDA_net_dataset/val/image",
+                "--test_path",  "/home/kourosh/Drive/Datasets/BSDA_net_dataset/test/image",
+                "--save_path",  "log",
+                "--encoder",    "resnet34",
+                "--distance_type", "dist_signed11",
+                // "--train_type", "",
+                // "--model_type", "",
+                "--batch_size", "1",
+                // "--val_batch_size", "",
+                "--num_epochs", "2",
+                // "--use_pretrained", "",
+                "--loss_type", "dice",
+                // "--LR_seg", "",
+                // "--LR_clf", "",
+                // "--classnum", "",
+            ],
+        }
+    ]
+}
