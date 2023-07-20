@@ -1,0 +1,7 @@
+tensorboardX
+segmentation_models_pytorch
+kornia
+scipy
+scikit-learn
+wandb
+protobuf==3.20.*
