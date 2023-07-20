@@ -2,3 +2,7 @@
 *.mat
 *.zip
 *.pyc
+*.log
+*.json
+/wandb
+/log

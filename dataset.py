@@ -56,9 +56,12 @@ class DatasetImageMaskContourDist(Dataset):
 
         img_file_name = self.file_names[idx]
         image = load_image(img_file_name, self.mean, self.std, self.clahe)
+
         mask = load_mask(img_file_name)
         contour = load_contourheat(img_file_name)
         dist = load_distance(img_file_name, self.distance_type)
+        masks = [mask , contour, dist]
+        
         cls = load_class(img_file_name)
 
         return img_file_name, image, mask, contour, dist, cls
@@ -117,6 +120,9 @@ def load_contour(path):
 def load_contourheat(path):
 
     path = path.replace("image", "contour").replace("png", "mat")
+    # contour = cv2.imread(path)
+    # contour = contour.mean(2)
+    # contour[contour == 255] = 1
     contour = io.loadmat(path)["contour"]
 
     return torch.from_numpy(np.expand_dims(contour, 0)).float()
@@ -141,8 +147,7 @@ def load_distance(path, distance_type):
 
     if distance_type == "dist_mask":
         path = path.replace("image", "dist_mask").replace("png", "mat")
-        # print (path)
-        # print (io.loadmat(path))
+
         dist = io.loadmat(path)["dis"]
 
     if distance_type == "dist_contour":
@@ -160,6 +165,7 @@ def load_distance(path, distance_type):
     if distance_type == "dist_fore":
         path = path.replace("image", "dist_fore").replace("png", "mat")
         dist = io.loadmat(path)["f_dis"]
+
 
     return torch.from_numpy(np.expand_dims(dist, 0)).float()
 

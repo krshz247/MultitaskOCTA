@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     aug = alb.Compose([
         alb.RandomRotate90(),
-      # albu.Cutout(),
+        # albu.Cutout(),
         alb.HorizontalFlip(),
         alb.VerticalFlip(),
         alb.OneOf([

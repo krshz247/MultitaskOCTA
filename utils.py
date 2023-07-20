@@ -298,8 +298,8 @@ def visualize(device, epoch, model, data_loader, writer, val_batch_size, train=F
 def generate_dataset(train_file_names, val_file_names, batch_size, val_batch_size, distance_type, do_clahe):
     train_mean, train_std = mean_and_std(train_file_names)
 
-    train_dataset = DatasetImageMaskContourDist(train_file_names[:2], distance_type, train_mean, train_std, do_clahe)
-    valid_dataset = DatasetImageMaskContourDist(val_file_names[:1], distance_type, train_mean, train_std, do_clahe)
+    train_dataset = DatasetImageMaskContourDist(train_file_names, distance_type, train_mean, train_std, do_clahe)
+    valid_dataset = DatasetImageMaskContourDist(val_file_names, distance_type, train_mean, train_std, do_clahe)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=8, shuffle=True, drop_last=True)
     valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, num_workers=4, shuffle=True)
 
@@ -312,40 +312,18 @@ def create_train_arg_parser():
     parser.add_argument("--train_path", type=str, help="path to training img jpg files")
     parser.add_argument("--val_path", type=str, help="path to validation img jpg files")
     parser.add_argument("--test_path", type=str, help="path to test img jpg files")
-    parser.add_argument(
-        "--train_type",
-        type=str,
-        default="cotraining",
-        help="Select training type, including single classification, segmentation, cotraining and multitask. ")
-    parser.add_argument(
-        "--model_type",
-        type=str,
-        help="select model type: unet,dcan,dmtn,psinet,convmcd",
-    )
+    parser.add_argument("--train_type", type=str, default="cotraining", help="Select training type, including single classification, segmentation, cotraining and multitask. ")
+    parser.add_argument("--model_type", type=str, help="select model type: unet,dcan,dmtn,psinet,convmcd")
     parser.add_argument("--object_type", type=str, help="Dataset.")
-    parser.add_argument(
-        "--distance_type",
-        type=str,
-        default="dist_mask",
-        help="select distance transform type - dist_mask,dist_contour,dist_signed",
-    )
+    parser.add_argument("--distance_type", type=str, default="dist_mask", help="select distance transform type - dist_mask,dist_contour,dist_signed")
     parser.add_argument("--batch_size", type=int, default=64, help="train batch size")
-    parser.add_argument(
-        "--val_batch_size", type=int, default=64, help="validation batch size"
-    )
+    parser.add_argument("--val_batch_size", type=int, default=64, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=500, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
-    parser.add_argument(
-        "--use_pretrained", type=bool, default=False, help="Load pretrained checkpoint."
-    )
-    parser.add_argument(
-        "--pretrained_model_path",
-        type=str,
-        default=None,
-        help="If use_pretrained is true, provide checkpoint.",
-    )
+    parser.add_argument("--use_pretrained", type=bool, default=False, help="Load pretrained checkpoint.")
+    parser.add_argument("--pretrained_model_path", type=str, default=None, help="If use_pretrained is true, provide checkpoint.")
     parser.add_argument("--save_path", type=str, help="Model save path.")
-    parser.add_argument("--encoder", type=str, default="resnet34", help="encoder.")
+    parser.add_argument("--encoder", type=str, default="resnet50", help="encoder.")
     parser.add_argument("--pretrain", type=str, default=None, help="choose pretrain.")
     parser.add_argument("--loss_type", type=str, default=None, help="loss type.")
     parser.add_argument("--local_rank", default=0, type=int, help='node rank for distributed training')
@@ -359,23 +337,15 @@ def create_train_arg_parser():
     parser.add_argument("--clahe", type=bool, default=False, help="do clahe.")
     parser.add_argument("--classnum", type=int, default=3, help="clf class number.")
     parser.add_argument("--fold", type=str, default=0, help="Fold for training.")
+    parser.add_argument("--augmentation", type=str, default=False, help="using data augmentation.")
     return parser
 
 
 def create_validation_arg_parser():
 
     parser = argparse.ArgumentParser(description="train setup for segmentation")
-    parser.add_argument(
-        "--model_type",
-        type=str,
-        help="select model type: unet,dcan,dmtn,psinet,convmcd",
-    )
-    parser.add_argument(
-        "--distance_type",
-        type=str,
-        default="dist_signed",
-        help="select distance transform type - dist_mask,dist_contour,dist_signed",
-    )
+    parser.add_argument("--model_type", type=str, help="select model type: unet,dcan,dmtn,psinet,convmcd")
+    parser.add_argument("--distance_type", type=str, default="dist_signed", help="select distance transform type - dist_mask,dist_contour,dist_signed")
     parser.add_argument("--train_path", type=str, help="path to train img jpg files")
     parser.add_argument("--val_path", type=str, help="path to validation img jpg files")
     parser.add_argument("--test_path", type=str, help="path to test img jpg files")
