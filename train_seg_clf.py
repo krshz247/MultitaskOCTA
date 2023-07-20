@@ -9,6 +9,7 @@ import logging
 from torch import nn
 import random
 from tensorboardX import SummaryWriter
+import wandb
 from utils import create_train_arg_parser, define_loss, generate_dataset
 from losses import My_multiLoss
 import segmentation_models_pytorch as smp
@@ -23,7 +24,6 @@ from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
 # torch.backends.cudnn.allow_tf32 = True
 
 IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
-
 
 def set_seed(seed):
     random.seed(seed)
@@ -153,27 +153,21 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         # clf_outputs = model.clf_forward(inputs, seg_outputs[1])
         clf_outputs = model.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
 
-        # print(seg_criterion)j
-        # print(seg_outputs[0].shape, targets[0].shape)
+
         seg_criterion, dice_criterion, jaccard_criterion, clf_criterion = criterion[0], criterion[1], criterion[2], criterion[3]
         seg_loss = seg_criterion(seg_outputs[0], targets[0].to(torch.float32))
         multi_criterion = My_multiLoss(loss_weights)
-        multi_loss = multi_criterion(
-                        seg_outputs[0], seg_outputs[1], seg_outputs[2], targets[0].to(torch.float32), targets[1], targets[2]
-                    )
-        # print(seg_outputs[1].shape, targets[1].shape)
+        multi_loss = multi_criterion(seg_outputs[0], seg_outputs[1], seg_outputs[2], targets[0].to(torch.float32), targets[1], targets[2])
+
         seg_dice = 1 - dice_criterion(seg_preds.squeeze(1), targets[0].squeeze(1))
         seg_jaccard = 1 - jaccard_criterion(seg_preds.squeeze(1), targets[0].squeeze(1))
         # seg_iou = smp.utils.metrics.IoU(threshold=0.5)
 
-        # print(clf_outputs.shape, targets[3].shape)
         clf_labels = torch.argmax(targets[3], dim=2).squeeze(1)
         clf_preds = torch.argmax(clf_outputs, dim=1)
         clf_loss = clf_criterion(clf_outputs.squeeze().float(), targets[3].squeeze().float())
         kappa = cohen_kappa_score(clf_labels.detach().cpu().numpy(), clf_preds.detach().cpu().numpy())
-        # print(targets[3])
-        # print(clf_labels)
-        # print(clf_preds)
+
         acc = np.mean(clf_labels.detach().cpu().numpy() == clf_preds.detach().cpu().numpy())
 
         if training:
@@ -204,7 +198,6 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
     clf_epoch_loss = clf_losses.avg
     clf_epoch_acc = clf_accs.avg
     clf_epoch_kappa = clf_kappas.avg
-    # clf_epoch_loss = clf_running_loss / total_size
     # print("total size:", total_size, training, seg_epoch_loss)
 
     return seg_epoch_loss, multi_epoch_loss, seg_epoch_dice, seg_epoch_jaccard, clf_epoch_loss, clf_epoch_acc, clf_epoch_kappa
@@ -259,6 +252,25 @@ def main():
 
         log_path = os.path.join(args.save_path, "summary/")
         writer = SummaryWriter(log_dir=log_path)
+
+        wandb.init(
+        project="BSDA-Net",
+        dir = args.save_path,
+        # Track hyperparameters and run metadata
+        config={
+                "Encoder":args.encoder,
+                "Augmentation": args.augmentation,
+                "distance_type":args.distance_type,
+                "train_type": args.train_type,
+                "train_batch_size":args.batch_size,
+                "val_batch_size": args.val_batch_size,
+                "num_epochs": args.num_epochs,
+                "loss_type": "dice",
+                "LR_seg": args.LR_seg,
+                "LR_clf": args.LR_clf,
+    }
+    )
+
         rq = time.strftime('%Y%m%d%H%M', time.localtime(time.time()))
         log_name = os.path.join(log_path, str(rq) + '.log')
         logging.basicConfig(
@@ -277,18 +289,12 @@ def main():
         attention_type = args.attention
         if args.pretrain in ['imagenet', 'ssl', 'swsl', 'instagram']:
             pretrain = args.pretrain
-            # preprocess_input = get_preprocessing_fn(encoder, pretrain)
         else:
             pretrain = None
 
-        # preprocess_input = get_preprocessing_fn(encoder)
-        # model = CotrainingModel(encoder, pretrain).to(device)
         model = CotrainingModelMulti(encoder, pretrain, usenorm, attention_type, args.classnum).to(device)
         logging.info(model)
 
-        # seg_criterion = smp.utils.losses.DiceLoss()
-        # seg_dice_criterion = smp.utils.losses.DiceLoss()
-        # clf_criterion = smp.utils.losses.CrossEntropyLoss()
         
         criterion = [
             define_loss(args.loss_type),
@@ -306,14 +312,9 @@ def main():
         # model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
 
         train_file_names = glob.glob(os.path.join(args.train_path, "*.png"))
-        # random.shuffle(train_file_names)
         val_file_names = glob.glob(os.path.join(args.val_path, "*.png"))
         random.shuffle(val_file_names)
 
-        # train_dataset = DatasetImageMaskContourDist(train_file_names, args.distance_type)
-        # valid_dataset = DatasetImageMaskContourDist(val_file_names, args.distance_type)
-        # trainLoader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=8)
-        # devLoader = DataLoader(valid_dataset, batch_size=args.val_batch_size, num_workers=4)
         trainLoader, devLoader = generate_dataset(train_file_names, val_file_names, args.batch_size, args.val_batch_size, args.distance_type, args.clahe)
 
         epoch_start = 0
@@ -337,21 +338,37 @@ def main():
             logging.info(epoch_info)
             logging.info(train_info)
             logging.info(val_info)
-            writer.add_scalar("trainseg_loss", training_seg_loss, epoch)
-            writer.add_scalar("trainmulti_loss", training_multi_loss, epoch)
-            writer.add_scalar("trainseg_dice", training_seg_dice, epoch)
-            writer.add_scalar("trainseg_jaccard", training_seg_jaccard, epoch)
-            writer.add_scalar("traincls_loss", training_clf_loss, epoch)
-            writer.add_scalar("traincls_acc", training_clf_acc, epoch)
-            writer.add_scalar("traincls_kappa", training_clf_kappa, epoch)
+            # writer.add_scalar("train_seg_loss", training_seg_loss, epoch)
+            # writer.add_scalar("train_multi_loss", training_multi_loss, epoch)
+            # writer.add_scalar("train_seg_dice", training_seg_dice, epoch)
+            # writer.add_scalar("train_seg_jaccard", training_seg_jaccard, epoch)
+            # writer.add_scalar("train_cls_loss", training_clf_loss, epoch)
+            # writer.add_scalar("train_cls_acc", training_clf_acc, epoch)
+            # writer.add_scalar("train_cls_kappa", training_clf_kappa, epoch)
 
-            writer.add_scalar("valseg_loss", dev_seg_loss, epoch)
-            writer.add_scalar("valmulti_loss", dev_multi_loss, epoch)
-            writer.add_scalar("valseg_dice", dev_seg_dice, epoch)
-            writer.add_scalar("valseg_jaccard", dev_seg_jaccard, epoch)
-            writer.add_scalar("valcls_loss", dev_clf_loss, epoch)
-            writer.add_scalar("valcls_acc", dev_clf_acc, epoch)
-            writer.add_scalar("valcls_kappa", dev_clf_kappa, epoch)
+            # writer.add_scalar("val_seg_loss", dev_seg_loss, epoch)
+            # writer.add_scalar("val_multi_loss", dev_multi_loss, epoch)
+            # writer.add_scalar("val_seg_dice", dev_seg_dice, epoch)
+            # writer.add_scalar("val_seg_jaccard", dev_seg_jaccard, epoch)
+            # writer.add_scalar("val_cls_loss", dev_clf_loss, epoch)
+            # writer.add_scalar("val_cls_acc", dev_clf_acc, epoch)
+            # writer.add_scalar("val_cls_kappa", dev_clf_kappa, epoch)
+
+            wandb.log({"train_seg_loss": training_seg_loss, 
+                       "train_multi_loss": training_multi_loss,
+                       "train_seg_dice": training_seg_dice,
+                       "train_seg_jaccard": training_seg_jaccard,
+                       "train_cls_loss": training_clf_loss,
+                       "train_cls_acc": training_clf_acc,
+                       "train_cls_kappa": training_clf_kappa,
+                       "val_seg_loss": dev_seg_loss,
+                       "val_multi_loss": dev_multi_loss,
+                       "val_seg_dice": dev_seg_dice,
+                       "val_seg_jaccard": dev_seg_jaccard,
+                       "val_cls_loss": dev_clf_loss,
+                       "val_cls_acc": dev_clf_acc,
+                       "val_cls_kappa": dev_clf_kappa
+                       })
 
             best_name = os.path.join(args.save_path, "dice_" + str(round(dev_seg_dice, 5)) + "_jaccard_" + str(round(dev_seg_jaccard, 5)) + "_acc_" + str(round(dev_clf_acc, 4)) + "_kap_" + str(round(dev_clf_kappa, 4)) + ".pt")
             save_name = os.path.join(args.save_path, str(epoch) + "_dice_" + str(round(dev_seg_dice, 5)) + "_jaccard_" + str(round(dev_seg_jaccard, 5)) + "_acc_" + str(round(dev_clf_acc, 4)) + "_kap_" + str(round(dev_clf_kappa, 4)) + ".pt")
@@ -383,6 +400,7 @@ def main():
                     torch.save(model.state_dict(), save_name)
                     print('Epoch {} model saved!'.format(epoch))
 
+            wandb.finish
 
 if __name__ == "__main__":
     main()
