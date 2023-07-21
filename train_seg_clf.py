@@ -253,24 +253,6 @@ def main():
         log_path = os.path.join(args.save_path, "summary/")
         writer = SummaryWriter(log_dir=log_path)
 
-        wandb.init(
-        project="BSDA-Net",
-        dir = args.save_path,
-        # Track hyperparameters and run metadata
-        config={
-                "Encoder":args.encoder,
-                "Augmentation": args.augmentation,
-                "distance_type":args.distance_type,
-                "train_type": args.train_type,
-                "train_batch_size":args.batch_size,
-                "val_batch_size": args.val_batch_size,
-                "num_epochs": args.num_epochs,
-                "loss_type": "dice",
-                "LR_seg": args.LR_seg,
-                "LR_clf": args.LR_clf,
-    }
-    )
-
         rq = time.strftime('%Y%m%d%H%M', time.localtime(time.time()))
         log_name = os.path.join(log_path, str(rq) + '.log')
         logging.basicConfig(
@@ -283,6 +265,25 @@ def main():
         logging.info(args)
 
         device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")
+
+        if device.type != "cpu":
+            wandb.init(
+            project="BSDA-Net",
+            dir = args.save_path,
+            # Track hyperparameters and run metadata
+            config={
+                    "Encoder":args.encoder,
+                    "Augmentation": args.augmentation,
+                    "distance_type":args.distance_type,
+                    "train_type": args.train_type,
+                    "train_batch_size":args.batch_size,
+                    "val_batch_size": args.val_batch_size,
+                    "num_epochs": args.num_epochs,
+                    "loss_type": "dice",
+                    "LR_seg": args.LR_seg,
+                    "LR_clf": args.LR_clf,
+        }
+        )
 
         encoder = args.encoder
         usenorm = args.usenorm
@@ -353,22 +354,22 @@ def main():
             # writer.add_scalar("val_cls_loss", dev_clf_loss, epoch)
             # writer.add_scalar("val_cls_acc", dev_clf_acc, epoch)
             # writer.add_scalar("val_cls_kappa", dev_clf_kappa, epoch)
-
-            wandb.log({"train_seg_loss": training_seg_loss, 
-                       "train_multi_loss": training_multi_loss,
-                       "train_seg_dice": training_seg_dice,
-                       "train_seg_jaccard": training_seg_jaccard,
-                       "train_cls_loss": training_clf_loss,
-                       "train_cls_acc": training_clf_acc,
-                       "train_cls_kappa": training_clf_kappa,
-                       "val_seg_loss": dev_seg_loss,
-                       "val_multi_loss": dev_multi_loss,
-                       "val_seg_dice": dev_seg_dice,
-                       "val_seg_jaccard": dev_seg_jaccard,
-                       "val_cls_loss": dev_clf_loss,
-                       "val_cls_acc": dev_clf_acc,
-                       "val_cls_kappa": dev_clf_kappa
-                       })
+            if device.type != "cpu":
+                wandb.log({"train_seg_loss": training_seg_loss, 
+                        "train_multi_loss": training_multi_loss,
+                        "train_seg_dice": training_seg_dice,
+                        "train_seg_jaccard": training_seg_jaccard,
+                        "train_cls_loss": training_clf_loss,
+                        "train_cls_acc": training_clf_acc,
+                        "train_cls_kappa": training_clf_kappa,
+                        "val_seg_loss": dev_seg_loss,
+                        "val_multi_loss": dev_multi_loss,
+                        "val_seg_dice": dev_seg_dice,
+                        "val_seg_jaccard": dev_seg_jaccard,
+                        "val_cls_loss": dev_clf_loss,
+                        "val_cls_acc": dev_clf_acc,
+                        "val_cls_kappa": dev_clf_kappa
+                        })
 
             best_name = os.path.join(args.save_path, "dice_" + str(round(dev_seg_dice, 5)) + "_jaccard_" + str(round(dev_seg_jaccard, 5)) + "_acc_" + str(round(dev_clf_acc, 4)) + "_kap_" + str(round(dev_clf_kappa, 4)) + ".pt")
             save_name = os.path.join(args.save_path, str(epoch) + "_dice_" + str(round(dev_seg_dice, 5)) + "_jaccard_" + str(round(dev_seg_jaccard, 5)) + "_acc_" + str(round(dev_clf_acc, 4)) + "_kap_" + str(round(dev_clf_kappa, 4)) + ".pt")
