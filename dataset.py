@@ -13,6 +13,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from scipy import io
 from scipy.ndimage import distance_transform_edt
+from augmentation import augment, pre_process
 
 
 def mean_and_std(paths):
@@ -58,11 +59,30 @@ class DatasetImageMaskContourDist(Dataset):
         image = load_image(img_file_name, self.mean, self.std, self.clahe)
 
         mask = load_mask(img_file_name)
-        contour = load_contourheat(img_file_name)
-        dist = load_distance(img_file_name, self.distance_type)
+        # contour = load_contourheat(img_file_name)
+        # dist = load_distance(img_file_name, self.distance_type)
+
+        contour, dist = pre_process(mask)
+
+
         masks = [mask , contour, dist]
         
         cls = load_class(img_file_name)
+
+        image, masks = augment(image, masks)
+        for i, mask in enumerate(masks):
+            masks[i] = torch.from_numpy(np.expand_dims(mask, 0)).float()
+
+        data_transforms = transforms.Compose(
+        [
+            
+            transforms.ToTensor(),
+            transforms.Normalize([self.mean, ], [self.std, ]),
+        ]
+        )
+        image = data_transforms(image)
+
+        mask, contour, dist = masks
 
         return img_file_name, image, mask, contour, dist, cls
         # return image, mask
@@ -88,16 +108,6 @@ def load_image(path, mean, std, clahe):
     #     img = clahe_equalized(img)
     #     img = np.array(img ,dtype=np.float32)
 
-    data_transforms = transforms.Compose(
-        [
-            # transforms.Resize(416),
-            transforms.ToTensor(),
-            # transforms.Normalize([0.445,], [0.222,]),
-            transforms.Normalize([mean, ], [std, ]),
-        ]
-    )
-    img = data_transforms(img)
-
     return img
 
 
@@ -106,7 +116,8 @@ def load_mask(path):
     mask = cv2.imread(path.replace("image", "mask").replace("png", "png"), 0)
     mask[mask == 255] = 1
 
-    return torch.from_numpy(np.expand_dims(mask, 0)).long()
+    # return torch.from_numpy(np.expand_dims(mask, 0)).long()
+    return mask
 
 
 def load_contour(path):
@@ -125,7 +136,8 @@ def load_contourheat(path):
     # contour[contour == 255] = 1
     contour = io.loadmat(path)["contour"]
 
-    return torch.from_numpy(np.expand_dims(contour, 0)).float()
+    # return torch.from_numpy(np.expand_dims(contour, 0)).float()
+    return contour
 
 
 def load_class(path):
@@ -167,7 +179,8 @@ def load_distance(path, distance_type):
         dist = io.loadmat(path)["f_dis"]
 
 
-    return torch.from_numpy(np.expand_dims(dist, 0)).float()
+    # return torch.from_numpy(np.expand_dims(dist, 0)).float()
+    return dist
 
 
 class DatasetCornea(Dataset):

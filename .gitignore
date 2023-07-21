@@ -4,5 +4,7 @@
 *.pyc
 *.log
 *.json
+*.ipynb
+pri_dis.py
 /wandb
 /log
