@@ -145,12 +145,10 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
             optimizer.zero_grad()
 
         seg_outputs = model.seg_forward(inputs)
-        # seg_preds = torch.argmax(seg_outputs[0].exp(), dim=1)
         if not isinstance(seg_outputs, list):
             seg_outputs = [seg_outputs]
 
         seg_preds = torch.round(seg_outputs[0])
-        # clf_outputs = model.clf_forward(inputs, seg_outputs[1])
         clf_outputs = model.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
 
 
@@ -228,7 +226,6 @@ class CotrainingModelMulti(nn.Module):
         self.seg_model = MyMultibranchModel(
             encoder_name=encoder, encoder_depth=5, encoder_weights=pretrain, decoder_use_batchnorm=usenorm,
             decoder_channels=(256, 128, 64, 32, 16),
-            # decoder_channels=(512, 256, 128, 64, 32),
             decoder_attention_type=attention_type, in_channels=1, classes=1,
             activation='sigmoid', aux_params=None
         )
@@ -266,7 +263,7 @@ def main():
 
         device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")
 
-        if device.type != "cpu":
+        if args.log_mode:
             wandb.init(
             project="BSDA-Net",
             dir = args.save_path,
@@ -282,8 +279,7 @@ def main():
                     "loss_type": "dice",
                     "LR_seg": args.LR_seg,
                     "LR_clf": args.LR_clf,
-        }
-        )
+        })
 
         encoder = args.encoder
         usenorm = args.usenorm
@@ -339,22 +335,8 @@ def main():
             logging.info(epoch_info)
             logging.info(train_info)
             logging.info(val_info)
-            # writer.add_scalar("train_seg_loss", training_seg_loss, epoch)
-            # writer.add_scalar("train_multi_loss", training_multi_loss, epoch)
-            # writer.add_scalar("train_seg_dice", training_seg_dice, epoch)
-            # writer.add_scalar("train_seg_jaccard", training_seg_jaccard, epoch)
-            # writer.add_scalar("train_cls_loss", training_clf_loss, epoch)
-            # writer.add_scalar("train_cls_acc", training_clf_acc, epoch)
-            # writer.add_scalar("train_cls_kappa", training_clf_kappa, epoch)
-
-            # writer.add_scalar("val_seg_loss", dev_seg_loss, epoch)
-            # writer.add_scalar("val_multi_loss", dev_multi_loss, epoch)
-            # writer.add_scalar("val_seg_dice", dev_seg_dice, epoch)
-            # writer.add_scalar("val_seg_jaccard", dev_seg_jaccard, epoch)
-            # writer.add_scalar("val_cls_loss", dev_clf_loss, epoch)
-            # writer.add_scalar("val_cls_acc", dev_clf_acc, epoch)
-            # writer.add_scalar("val_cls_kappa", dev_clf_kappa, epoch)
-            if device.type != "cpu":
+            
+            if args.log_mode:
                 wandb.log({"train_seg_loss": training_seg_loss, 
                         "train_multi_loss": training_multi_loss,
                         "train_seg_dice": training_seg_dice,

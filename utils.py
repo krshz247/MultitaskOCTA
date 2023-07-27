@@ -314,6 +314,7 @@ def create_train_arg_parser():
     parser.add_argument("--test_path", type=str, help="path to test img jpg files")
     parser.add_argument("--train_type", type=str, default="cotraining", help="Select training type, including single classification, segmentation, cotraining and multitask. ")
     parser.add_argument("--model_type", type=str, help="select model type: unet,dcan,dmtn,psinet,convmcd")
+    parser.add_argument("--log_mode", type=bool, default=False, help="logging in wandb")
     parser.add_argument("--object_type", type=str, help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="select distance transform type - dist_mask,dist_contour,dist_signed")
     parser.add_argument("--batch_size", type=int, default=64, help="train batch size")
