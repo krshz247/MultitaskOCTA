@@ -8,11 +8,14 @@ from tqdm import tqdm
 import logging
 from torch import nn
 import random
+import cv2
+import torchmetrics
 from tensorboardX import SummaryWriter
 import wandb
-from utils import create_train_arg_parser, define_loss, generate_dataset
+from utils import create_train_arg_parser, define_loss, generate_dataset, set_max_split_size_mb
 from losses import My_multiLoss
 import segmentation_models_pytorch as smp
+import torchvision.models as models
 import numpy as np
 from sklearn.metrics import cohen_kappa_score
 from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
@@ -32,6 +35,12 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+
+
+def wb_mask(bg_img, pred_mask, true_mask, labels):
+  return wandb.Image(bg_img, masks={
+    "prediction" : {"mask_data" : pred_mask, "class_labels": labels},
+    "ground truth" : {"mask_data" : true_mask, "class_labels": labels}})
 
 
 def segmentation_iteration(model, optimizer, model_type, criterion, data_loader, device, writer, training=False):
@@ -122,11 +131,20 @@ class AverageMeter(object):
 def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, loss_weights, startpoint, training=False):
     seg_losses = AverageMeter("Loss", ".16f")
     multi_losses = AverageMeter("multiLoss", ".16f")
-    seg_dices = AverageMeter("Dice", ".8f")
+    seg_dices = AverageMeter("Dice_loss", ".8f")
+    dice_coefs = AverageMeter("Dice_coeff", ".8f")
     seg_jaccards = AverageMeter("Jaccard", ".8f")
     clf_losses = AverageMeter("Loss", ".16f")
     clf_accs = AverageMeter("Acc", ".8f")
     clf_kappas = AverageMeter("Kappa", ".8f")
+
+    f1 = torchmetrics.F1Score(task="multiclass", num_classes=3).to(device)
+    precision = torchmetrics.Precision(task="multiclass", average='micro', num_classes=3).to(device)
+    recall = torchmetrics.Recall(task="multiclass", average='micro', num_classes=3).to(device)
+    cohenkappa = torchmetrics.CohenKappa(task="multiclass", num_classes=3).to(device)
+    confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=3).to(device)
+
+    mask_list = []
 
     if training:
         model.train()
@@ -135,38 +153,63 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         model.eval()
         torch.set_grad_enabled(False)
 
+    if epoch <= startpoint:
+            for params in model.module.clf_model.parameters():
+                params.requires_grad = False
+
+    else:
+        for params in model.module.clf_model.parameters():
+            params.requires_grad = True
+
     for i, (img_file_name, inputs, targets1, targets2, targets3, targets4) in enumerate(tqdm(data_loader)):
+
         inputs = inputs.to(device)
         targets1, targets2 = targets1.to(device), targets2.to(device)
         targets3, targets4 = targets3.to(device), targets4.to(device)
         targets = [targets1, targets2, targets3, targets4]
 
+        class_names = ["Noraml", "DR", "AMD"]
+
+
         if training:
             optimizer.zero_grad()
 
-        seg_outputs = model.seg_forward(inputs)
+
+        seg_outputs = model.module.seg_forward(inputs)
         if not isinstance(seg_outputs, list):
             seg_outputs = [seg_outputs]
 
         seg_preds = torch.round(seg_outputs[0])
-        clf_outputs = model.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
+        clf_outputs = model.module.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
 
 
         seg_criterion, dice_criterion, jaccard_criterion, clf_criterion = criterion[0], criterion[1], criterion[2], criterion[3]
-        seg_loss = seg_criterion(seg_outputs[0], targets[0].to(torch.float32))
+
+        # Multi-Segmentation loss
         multi_criterion = My_multiLoss(loss_weights)
         multi_loss = multi_criterion(seg_outputs[0], seg_outputs[1], seg_outputs[2], targets[0].to(torch.float32), targets[1], targets[2])
 
-        seg_dice = 1 - dice_criterion(seg_preds.squeeze(1), targets[0].squeeze(1))
-        seg_jaccard = 1 - jaccard_criterion(seg_preds.squeeze(1), targets[0].squeeze(1))
-        # seg_iou = smp.utils.metrics.IoU(threshold=0.5)
+        # Segmentation evaluation metrics
+        seg_loss = seg_criterion(seg_outputs[0], targets[0].to(torch.int))
+        seg_dice = dice_criterion(seg_preds.squeeze(1), targets[0].squeeze(1))
+        seg_jaccard = jaccard_criterion(seg_preds.squeeze(1), targets[0].squeeze(1))
 
+        dice = torchmetrics.Dice().to(device)
+        dice_coef = dice(seg_preds.squeeze(1), targets[0].squeeze(1).to(torch.int))
+
+        # Classification evaluation metrics
         clf_labels = torch.argmax(targets[3], dim=2).squeeze(1)
         clf_preds = torch.argmax(clf_outputs, dim=1)
+
         clf_loss = clf_criterion(clf_outputs.squeeze().float(), targets[3].squeeze().float())
         kappa = cohen_kappa_score(clf_labels.detach().cpu().numpy(), clf_preds.detach().cpu().numpy())
-
         acc = np.mean(clf_labels.detach().cpu().numpy() == clf_preds.detach().cpu().numpy())
+
+
+        f1_score = f1(clf_labels, clf_preds)
+        Percision = precision(clf_labels, clf_preds)
+        Recall = recall(clf_labels, clf_preds)
+        conf_matrix = confmat(clf_labels, clf_preds)
 
         if training:
             if epoch <= startpoint:
@@ -183,22 +226,66 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
 
         seg_losses.update(seg_loss.item(), inputs.size(0))
         multi_losses.update(multi_loss.item(), inputs.size(0))
+
         seg_dices.update(seg_dice.item(), inputs.size(0))
+        dice_coefs.update(dice_coef.item(), inputs.size(0))
         seg_jaccards.update(seg_jaccard.item(), inputs.size(0))
         clf_losses.update(clf_loss.item(), inputs.size(0))
         clf_accs.update(acc, inputs.size(0))
         clf_kappas.update(kappa, inputs.size(0))
 
+    if not training:
+        image = inputs[0][0].cpu().detach().numpy()
+        mask_pred = seg_outputs[0][0][0].cpu().detach().numpy()
+        mask_pred = cv2.threshold(mask_pred, 0.7, 1, cv2.THRESH_BINARY)[1]
+        # mask_pred = np.where(mask_pred > 0.5, 1, 0)
+        # boundary = seg_outputs[0][0][0].cpu().detach().numpy()
+        # dist = seg_outputs[0][0][0].cpu().detach().numpy()
+
+        mask_gt = targets1[0][0].cpu().detach().numpy()
+        labels = {1:"FAZ"}
+        # label= targets4[0].cpu().detach().numpy()
+        # boundary_gt = targets2[0][0].cpu().detach().numpy()   
+        # dist_gt = targets3[0][0].cpu().detach().numpy()
+
+        mask_log = wb_mask(image, mask_pred, mask_gt, labels)
+
+        # log all composite images to W&B
+        wandb.log({"predictions" : mask_log})
+        if epoch >= startpoint:
+            wandb.log({"conf_mat" : wandb.plot.confusion_matrix(probs=None,
+                            y_true=clf_labels.cpu().detach().numpy(), 
+                            preds=clf_preds.cpu().detach().numpy(),
+                            class_names=class_names)})
+
+    total_f1 = f1.compute()
+    total_recall = recall.compute()
+    total_precision = precision.compute()
+
     seg_epoch_loss = seg_losses.avg
     multi_epoch_loss = multi_losses.avg
     seg_epoch_dice = seg_dices.avg
+    dice_coef_epoch = dice_coefs.avg
     seg_epoch_jaccard = seg_jaccards.avg
     clf_epoch_loss = clf_losses.avg
     clf_epoch_acc = clf_accs.avg
     clf_epoch_kappa = clf_kappas.avg
-    # print("total size:", total_size, training, seg_epoch_loss)
 
-    return seg_epoch_loss, multi_epoch_loss, seg_epoch_dice, seg_epoch_jaccard, clf_epoch_loss, clf_epoch_acc, clf_epoch_kappa
+    data = {
+        "multi_loss" : multi_epoch_loss,
+        "seg_loss" : seg_epoch_loss,
+        "seg_dice_loss" : seg_epoch_dice,
+        "seg_dice_coef" : dice_coef_epoch,
+        "seg_jaccard_loss" : seg_epoch_jaccard,
+        "cls_loss": clf_epoch_loss,
+        "cls_acc" : clf_epoch_acc,
+        "cls_kappa" : clf_epoch_kappa,
+        "cls_f1" : total_f1,
+        "cls_recall" : total_recall,
+        "cls_percision" : total_precision,
+    }
+
+    return data
 
 
 class CotrainingModel(nn.Module):
@@ -263,6 +350,7 @@ def main():
 
         device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")
 
+        # logging in Wandb
         if args.log_mode:
             wandb.init(
             project="BSDA-Net",
@@ -279,7 +367,11 @@ def main():
                     "loss_type": "dice",
                     "LR_seg": args.LR_seg,
                     "LR_clf": args.LR_clf,
-        })
+                    "pretrain":args.pretrain,
+            })
+            wandb.define_metric("epochs")
+            wandb.define_metric("train*", step_metric="epochs")
+            wandb.define_metric("val*", step_metric="epochs")
 
         encoder = args.encoder
         usenorm = args.usenorm
@@ -289,22 +381,37 @@ def main():
         else:
             pretrain = None
 
-        model = CotrainingModelMulti(encoder, pretrain, usenorm, attention_type, args.classnum).to(device)
+        model = CotrainingModelMulti(encoder, pretrain, usenorm, attention_type, args.classnum) 
+
+        # model= nn.DataParallel(model)
+
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
+
+        # device = torch.device("cuda:1") 
+        model.to(device)
         logging.info(model)
 
-        
+        # Set the desired max_split_size_mb value (e.g., 200 MB)
+        max_split_size_mb = 400
+
+        # Call the function to set max_split_size_mb
+        # set_max_split_size_mb(model, max_split_size_mb)  
+
+        weights = [0.49, 1.88, 2.35]
+        class_weights = torch.FloatTensor(weights).cuda()        
         criterion = [
             define_loss(args.loss_type),
             smp.losses.DiceLoss("binary"),
             smp.losses.JaccardLoss("binary"),
-            # smp.losses.SoftCrossEntropyLoss(),
             torch.nn.CrossEntropyLoss()
         ]
 
         optimizer = Adam([
-            {"params": model.seg_model.parameters(), "lr": args.LR_seg},
-            {"params": model.clf_model.parameters(), "lr": args.LR_clf}
-        ])
+            {"params": model.module.seg_model.parameters(), "lr": args.LR_seg},
+            {"params": model.module.clf_model.parameters(), "lr": args.LR_clf}
+    ])
+
 
         # model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
 
@@ -324,12 +431,14 @@ def main():
         for epoch in range(epoch_start + 1, epoch_start + 1 + args.num_epochs):
 
             print('\nEpoch: {}'.format(epoch))
-            training_seg_loss, training_multi_loss, training_seg_dice, training_seg_jaccard, training_clf_loss, training_clf_acc, training_clf_kappa = seg_clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, loss_weights, startpoint, training=True)
-            dev_seg_loss, dev_multi_loss, dev_seg_dice, dev_seg_jaccard, dev_clf_loss, dev_clf_acc, dev_clf_kappa = seg_clf_iteration(epoch, model, optimizer, criterion, devLoader, device, loss_weights, startpoint, training=False)
+            train_data = seg_clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, loss_weights, startpoint, training=True)
+            dev_data = seg_clf_iteration(epoch, model, optimizer, criterion, devLoader, device, loss_weights, startpoint, training=False)
 
             epoch_info = "Epoch: {}".format(epoch)
-            train_info = "TrainSeg Loss:{:.7f}, TrMutiLoss:{:.7f}, Dice: {:.7f}, Jaccard: {:.7f}, TrainClf Loss:{:.7f}, Acc: {:.7f}, Kappa:{:.7f}".format(training_seg_loss, training_multi_loss, training_seg_dice, training_seg_jaccard, training_clf_loss, training_clf_acc, training_clf_kappa)
-            val_info = "ValSeg Loss:{:.7f}, VaMutiLoss:{:.7f}, Dice: {:.7f}, Jaccard: {:.7f}, ValClf Loss:{:.7f}, Acc: {:.7f}, Kappa:{:.7f}:".format(dev_seg_loss, dev_multi_loss, dev_seg_dice, dev_seg_jaccard, dev_clf_loss, dev_clf_acc, dev_clf_kappa)
+            # train_info = f"Tr_SegLoss:{train_data["seg_loss"]}, Tr_MutiLoss:{train_data["multi_loss"]}"
+            train_info = f"TrainSeg Loss:{train_data['seg_loss']}, TrMutiLoss:{train_data['multi_loss']}, Dice_Loss: {train_data['seg_dice_loss']}, Dice_Coeff: {train_data['seg_dice_coef']}, Jaccard: {train_data['seg_jaccard_loss']}, TrainClf Loss:{train_data['cls_loss']}, Acc: {train_data['cls_acc']}, Kappa:{train_data['cls_kappa']}"
+            val_info = f"ValSeg Loss:{dev_data['seg_loss']}, VaMutiLoss:{dev_data['multi_loss']}, Dice_Loss: {train_data['seg_dice_loss']}, Dice_Coeff: {train_data['seg_dice_coef']}, Jaccard: {dev_data['seg_jaccard_loss']}, ValClf Loss:{dev_data['cls_loss']}, Acc: {dev_data['cls_acc']}, Kappa:{dev_data['cls_kappa']}:"
+            
             print(train_info)
             print(val_info)
             logging.info(epoch_info)
@@ -337,27 +446,14 @@ def main():
             logging.info(val_info)
             
             if args.log_mode:
-                wandb.log({"train_seg_loss": training_seg_loss, 
-                        "train_multi_loss": training_multi_loss,
-                        "train_seg_dice": training_seg_dice,
-                        "train_seg_jaccard": training_seg_jaccard,
-                        "train_cls_loss": training_clf_loss,
-                        "train_cls_acc": training_clf_acc,
-                        "train_cls_kappa": training_clf_kappa,
-                        "val_seg_loss": dev_seg_loss,
-                        "val_multi_loss": dev_multi_loss,
-                        "val_seg_dice": dev_seg_dice,
-                        "val_seg_jaccard": dev_seg_jaccard,
-                        "val_cls_loss": dev_clf_loss,
-                        "val_cls_acc": dev_clf_acc,
-                        "val_cls_kappa": dev_clf_kappa
-                        })
+                wandb.log({"train": train_data, "epochs": epoch})
+                wandb.log({"val": dev_data, "epochs": epoch})
 
-            best_name = os.path.join(args.save_path, "dice_" + str(round(dev_seg_dice, 5)) + "_jaccard_" + str(round(dev_seg_jaccard, 5)) + "_acc_" + str(round(dev_clf_acc, 4)) + "_kap_" + str(round(dev_clf_kappa, 4)) + ".pt")
-            save_name = os.path.join(args.save_path, str(epoch) + "_dice_" + str(round(dev_seg_dice, 5)) + "_jaccard_" + str(round(dev_seg_jaccard, 5)) + "_acc_" + str(round(dev_clf_acc, 4)) + "_kap_" + str(round(dev_clf_kappa, 4)) + ".pt")
+            best_name = os.path.join(args.save_path, "dice_loss_" + str(round(dev_data['seg_dice_loss'], 5)) + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_kappa'], 4)) + ".pt")
+            save_name = os.path.join(args.save_path, str(epoch) + "_dice_loss_" + str(round(dev_data['seg_dice_loss'], 5)) + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_acc'], 4)) + ".pt")
 
-            if max_dice <= dev_seg_dice:
-                max_dice = dev_seg_dice
+            if max_dice <= dev_data['seg_dice_loss']:
+                max_dice = dev_data['seg_dice_loss']
                 # if epoch > 10:
                 if torch.cuda.device_count() > 1:
                     torch.save(model.module.state_dict(), best_name)
@@ -365,8 +461,8 @@ def main():
                     torch.save(model.state_dict(), best_name)
                 print('Best seg model saved!')
                 logging.warning('Best seg model saved!')
-            if max_acc <= dev_clf_acc:
-                max_acc = dev_clf_acc
+            if max_acc <= dev_data['cls_acc']:
+                max_acc = dev_data['cls_acc']
                 # if epoch > 10:
                 if torch.cuda.device_count() > 1:
                     torch.save(model.module.state_dict(), best_name)
