@@ -16,13 +16,19 @@
                 "--val_path",   "/mnt/projects/OCTA500/Datasets/BSDA-Net/no_aug_split/val/image/",
                 "--test_path",  "/mnt/projects/OCTA500/Datasets/BSDA-Net/no_aug_split/test/image/",
                 "--save_path",  "log",
+                "--model_type", "resnet50",
+                // "--encoder",    "timm-resnest50d",
                 "--encoder",    "resnet50",
                 "--distance_type", "dist_signed11",
                 "--batch_size", "16",
                 "--val_batch_size", "16",
                 "--num_epochs", "150",
                 "--loss_type", "dice",
-                "--augmentation", "true"
+                "--augmentation", "true",
+                "--LR_seg", "0.0001",
+                "--LR_clf", "0.00002",
+                "--startpoint", "20",
+                "--pretrain", "imagenet"
             ],
         }
     ]
