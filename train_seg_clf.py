@@ -12,11 +12,12 @@ import cv2
 import torchmetrics
 from tensorboardX import SummaryWriter
 import wandb
-from utils import create_train_arg_parser, define_loss, generate_dataset, set_max_split_size_mb
+from utils import create_train_arg_parser, define_loss, generate_dataset
 from losses import My_multiLoss
 import segmentation_models_pytorch as smp
 import torchvision.models as models
 import numpy as np
+import matplotlib
 from sklearn.metrics import cohen_kappa_score
 from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
 
@@ -25,6 +26,7 @@ from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
 # torch.backends.cudnn.benchmark = True
 # torch.backends.cudnn.deterministic = False
 # torch.backends.cudnn.allow_tf32 = True
+matplotlib.use('Agg')
 
 IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
 
@@ -161,7 +163,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         for params in model.module.clf_model.parameters():
             params.requires_grad = True
 
-    for i, (img_file_name, inputs, targets1, targets2, targets3, targets4) in enumerate(tqdm(data_loader)):
+    for i, (inputs, targets1, targets2, targets3, targets4) in enumerate(tqdm(data_loader)):
 
         inputs = inputs.to(device)
         targets1, targets2 = targets1.to(device), targets2.to(device)
@@ -335,8 +337,6 @@ def main():
         print("cuda_count:", torch.cuda.device_count())
 
         log_path = os.path.join(args.save_path, "summary/")
-        writer = SummaryWriter(log_dir=log_path)
-
         rq = time.strftime('%Y%m%d%H%M', time.localtime(time.time()))
         log_name = os.path.join(log_path, str(rq) + '.log')
         logging.basicConfig(
@@ -357,6 +357,8 @@ def main():
             dir = args.save_path,
             # Track hyperparameters and run metadata
             config={
+                    "img_depth" : args.img_path.split("/")[-1],
+                    "gt_type": args.gt_path.split("/")[-1],
                     "Encoder":args.encoder,
                     "Augmentation": args.augmentation,
                     "distance_type":args.distance_type,
@@ -364,7 +366,8 @@ def main():
                     "train_batch_size":args.batch_size,
                     "val_batch_size": args.val_batch_size,
                     "num_epochs": args.num_epochs,
-                    "loss_type": "dice",
+                    "loss_type": args.loss_type,
+                    "startpoint": args.startpoint,
                     "LR_seg": args.LR_seg,
                     "LR_clf": args.LR_clf,
                     "pretrain":args.pretrain,
@@ -392,12 +395,6 @@ def main():
         model.to(device)
         logging.info(model)
 
-        # Set the desired max_split_size_mb value (e.g., 200 MB)
-        max_split_size_mb = 400
-
-        # Call the function to set max_split_size_mb
-        # set_max_split_size_mb(model, max_split_size_mb)  
-
         weights = [0.49, 1.88, 2.35]
         class_weights = torch.FloatTensor(weights).cuda()        
         criterion = [
@@ -414,12 +411,26 @@ def main():
 
 
         # model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
+        if args.train_type == "Vessel_FAZ":
+            img_names = glob.glob(os.path.join(args.img_path, "*.bmp"))
+            gt_names = list()
+            random.shuffle(img_names)
+            for name in img_names:
+                gt_names.append(name.replace("image_surface", args.gt_path.split("/")[-2] + "/mask"))
 
-        train_file_names = glob.glob(os.path.join(args.train_path, "*.png"))
-        val_file_names = glob.glob(os.path.join(args.val_path, "*.png"))
-        random.shuffle(val_file_names)
+            train_index = int(len(img_names) * args.train_percentage)
+            val_index = int(len(img_names) * (args.train_percentage + args.val_percentage))
+            train_img_names = img_names[:train_index]
+            val_img_names = img_names[train_index : val_index]
 
-        trainLoader, devLoader = generate_dataset(train_file_names, val_file_names, args.batch_size, args.val_batch_size, args.distance_type, args.clahe)
+            train_gt_names = gt_names[:train_index]
+            val_gt_names = gt_names[train_index : train_index + val_index]
+        else:
+            train_file_names = glob.glob(os.path.join(args.train_path, "*.png"))
+            val_file_names = glob.glob(os.path.join(args.val_path, "*.png"))
+            random.shuffle(val_file_names)
+
+        trainLoader, devLoader = generate_dataset(train_img_names, train_gt_names, val_img_names, val_gt_names, args.batch_size, args.val_batch_size, args.distance_type, args.clahe)
 
         epoch_start = 0
         max_dice = 0.8
