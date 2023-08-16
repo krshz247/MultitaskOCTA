@@ -18,28 +18,24 @@ from scipy.ndimage.filters import gaussian_filter
 def augment(image, masks):
 
     transform = alb.Compose([
-        alb.RandomRotate90(),
-        alb.HorizontalFlip(),
-        alb.VerticalFlip(),
-        # alb.OneOf([
+        alb.augmentations.geometric.rotate.RandomRotate90(p=0.5),
+        alb.augmentations.geometric.transforms.HorizontalFlip(p=0.5),
+        alb.augmentations.geometric.transforms.VerticalFlip(p=0.5),
 
-        #   alb.augmentations.transforms.CLAHE(clip_limit=3),          
-        #   alb.augmentations.transforms.GaussNoise(var_limit=(20.0)),
-        #   alb.augmentations.transforms.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
-        #   alb.augmentations.transforms.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), always_apply=False, p=0.5),
-        #   alb.augmentations.transforms.RandomGamma(gamma_limit=(80, 120), eps=None, always_apply=False, p=0.5),
-        #   alb.augmentations.transforms.GaussNoise(var_limit=(2.5500000000000003, 12.75), per_channel=False, p=0.5)
-        # ], p= 0.6),
+        alb.OneOf([
+          alb.augmentations.transforms.CLAHE(clip_limit=3),          
+          alb.augmentations.transforms.GaussNoise(var_limit=(20.0)),
+          alb.augmentations.transforms.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
+          alb.augmentations.transforms.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), always_apply=False, p=0.5),
+          alb.augmentations.transforms.RandomGamma(gamma_limit=(80, 120), eps=None, always_apply=False, p=0.5),
+          alb.augmentations.transforms.GaussNoise(var_limit=(2.5500000000000003, 12.75), per_channel=False, p=0.5)
+        ], p= 0.6),
 
-        # alb.OneOf([
-        #   alb.Blur(blur_limit=3),
-        #   alb.GaussianBlur(blur_limit=3, sigma_limit=0, always_apply=False, p=0.5),
-        #   alb.MedianBlur(blur_limit=3, always_apply=False, p=0.5),
-        # ]),
-
-        alb.augmentations.geometric.transforms.Affine(scale=1.0, translate_percent=0, translate_px=None, rotate=(-90, 90), shear=0.0, interpolation=1, cval=0),
-
-    ], p=1)
+        alb.OneOf([
+          alb.GaussianBlur(),
+          alb.MedianBlur(),
+        ]),
+    ], p=0.6)
 
     transformed = transform(image=image, masks=masks)
     transformed_image = transformed['image']
@@ -64,8 +60,6 @@ def pre_process(mask):
     x = np.arange(0, re, 1)
     y = np.arange(0, re, 1)
     X, Y = np.meshgrid(x, y)
-
-    # mask = cv2.threshold(mask, 126, 255, cv2.THRESH_BINARY)[1]/ 255.
 
     contour00 = cv2.Canny(mask, 0, 1)
     contour00 = cv2.normalize(contour00, None, 0, 1.0, cv2.NORM_MINMAX, dtype=cv2.CV_32F)
