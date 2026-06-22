@@ -8,7 +8,7 @@ from tqdm import tqdm
 from typing import List
 from torch import Tensor, einsum
 from torch.nn import functional as F
-from dataset import DatasetImageMaskContourDist, mean_and_std
+from dataset import DatasetImageMaskContourDist, mean_and_std, DatasetImageFazMaskContourDist, DatasetImageClassification
 from dataset import DatasetCornea, distancedStainingImage
 from losses import LossUNet, LossDCAN, LossDMTN, LossPsiNet
 from models import UNet, UNet_DCAN, UNet_DMTN, PsiNet, UNet_ConvMCD
@@ -295,15 +295,32 @@ def visualize(device, epoch, model, data_loader, writer, val_batch_size, train=F
             break
 
 
-def generate_dataset(train_img_names, train_gt_names, val_img_names, val_gt_names, batch_size, val_batch_size, distance_type, do_clahe):
+def generate_dataset(train_img_names, val_img_names, test_img_names, input_size, batch_size, val_batch_size, distance_type, do_clahe, train_type, train_gt_names=None, val_gt_names=None, test_gt_names=None):
+
     train_mean, train_std = mean_and_std(train_img_names)
 
-    train_dataset = DatasetImageMaskContourDist(train_img_names, train_gt_names, distance_type, train_mean, train_std, do_clahe)
-    valid_dataset = DatasetImageMaskContourDist(val_img_names, val_gt_names, distance_type, train_mean, train_std, do_clahe)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=8, shuffle=True, drop_last=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, num_workers=4, shuffle=True)
+    if train_type == "Vessel_FAZ":
 
-    return train_loader, valid_loader
+        train_dataset = DatasetImageMaskContourDist(train_img_names, train_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
+        valid_dataset = DatasetImageMaskContourDist(val_img_names, val_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
+        test_dataset = DatasetImageMaskContourDist(test_img_names, test_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
+
+    elif train_type == "FAZ":
+
+        train_dataset = DatasetImageFazMaskContourDist(train_img_names, train_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
+        valid_dataset = DatasetImageFazMaskContourDist(val_img_names, val_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
+        test_dataset = DatasetImageFazMaskContourDist(test_img_names, test_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
+
+    elif train_type == "CLS":
+        train_dataset = DatasetImageClassification(train_img_names, input_size, train_mean, train_std, do_clahe)
+        valid_dataset = DatasetImageClassification(val_img_names, input_size, train_mean, train_std, do_clahe)
+        test_dataset = DatasetImageClassification(test_img_names, input_size, train_mean, train_std, do_clahe)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, shuffle=False, drop_last=True)
+    test_loader = DataLoader(test_dataset, batch_size=val_batch_size, shuffle=False, drop_last=True)
+
+    return train_loader, valid_loader, test_loader
 
 
 def create_train_arg_parser():
@@ -325,10 +342,11 @@ def create_train_arg_parser():
 
     parser.add_argument("--train_type", type=str, default="cotraining", help="Select training type, including single classification, segmentation, cotraining and multitask. ")
     parser.add_argument("--model_type", type=str, help="select model type: unet,dcan,dmtn,psinet,convmcd")
-    parser.add_argument("--log_mode", type=bool, default=False, help="logging in wandb")
+    parser.add_argument("--log_mode", type=bool, default=True, help="logging in wandb")
     parser.add_argument("--object_type", type=str, help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="select distance transform type - dist_mask,dist_contour,dist_signed")
     parser.add_argument("--batch_size", type=int, default=64, help="train batch size")
+    parser.add_argument("--input_size", type=list, default=[384, 384], help="input image and mask size")
     parser.add_argument("--val_batch_size", type=int, default=64, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=500, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
@@ -337,7 +355,7 @@ def create_train_arg_parser():
     parser.add_argument("--save_path", type=str, help="Model save path.")
     parser.add_argument("--wandb_path", type=str, help="wandb log path.")
     parser.add_argument("--encoder", type=str, default="resnet50", help="encoder.")
-    parser.add_argument("--pretrain", type=str, default=None, help="choose pretrain.")
+    parser.add_argument("--pretrain", type=str, default="imagenet", help="choose pretrain.")
     parser.add_argument("--loss_type", type=str, default=None, help="loss type.")
     parser.add_argument("--local_rank", default=0, type=int, help='node rank for distributed training')
     parser.add_argument("--LR_seg", default=1e-4, type=float, help='learning rate.')

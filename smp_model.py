@@ -611,7 +611,7 @@ class MyUnetModel(SegmentationModel):
         decoder_channels=(256, 128, 64, 32, 16),
         decoder_attention_type=None,
         in_channels=3,
-        classes=1,
+        classes=2,
         activation=None,
         aux_params=None,
     ):
@@ -709,6 +709,7 @@ class MyMultibranchModel(SegmentationModel):
         decoder_channels=(256, 128, 64, 32, 16),
         decoder_attention_type=None,
         in_channels=3,
+        out_channel =1,
         classes=1,
         activation=None,
         aux_params=None,
@@ -760,14 +761,14 @@ class MyMultibranchModel(SegmentationModel):
 
         self.segmentation_head2 = SegmentationHead(
             in_channels=decoder_channels[-1],
-            out_channels=1,     # mind here!!!
+            out_channels=out_channel,     # mind here!!!
             activation=None,       # mind here!!!
             kernel_size=3,
         )
 
         self.segmentation_head3 = SegmentationHead(
             in_channels=decoder_channels[-1],
-            out_channels=classes,
+            out_channels=out_channel,
             activation=None,      # mind here!!!
             kernel_size=3,
         )

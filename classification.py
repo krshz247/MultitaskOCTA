@@ -11,9 +11,10 @@ import cv2
 import torchmetrics
 from tensorboardX import SummaryWriter
 import wandb
-from utils import create_train_arg_parser, define_loss, generate_dataset, set_max_split_size_mb
+from utils import create_train_arg_parser, define_loss, generate_dataset
 from losses import My_multiLoss
 import segmentation_models_pytorch as smp
+from segmentation_models_pytorch.encoders.timm_resnest import ResNestEncoder, timm_resnest_encoders
 import torchvision.models as models
 import numpy as np
 from sklearn.metrics import cohen_kappa_score
@@ -56,7 +57,7 @@ class AverageMeter(object):
         return fmtstr.format(**self.__dict__)
 
 
-def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, loss_weights, startpoint, training=False):
+def clf_iteration(epoch, model, optimizer, criterion, data_loader, device, loss_weights, startpoint, training=False):
 
     clf_losses = AverageMeter("Loss", ".16f")
     clf_accs = AverageMeter("Acc", ".8f")
@@ -75,12 +76,11 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         model.eval()
         torch.set_grad_enabled(False)
 
-    for i, (img_file_name, inputs, targets1, targets2, targets3, targets4) in enumerate(tqdm(data_loader)):
+    for i,  (inputs, classes) in enumerate(tqdm(data_loader)):
         inputs = inputs.repeat(1, 3, 1, 1)
-        inputs = inputs.to(device)
-        targets1, targets2 = targets1.to(device), targets2.to(device)
-        targets3, targets4 = targets3.to(device), targets4.to(device)
-        targets = [targets1, targets2, targets3, targets4]
+        inputs = inputs.to(torch.float32).to(device)
+        cls_target = classes.to(device)
+        
 
         class_names = ["Noraml", "DR", "AMD"]
 
@@ -93,10 +93,10 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         clf_criterion = criterion
 
         # Classification evaluation metrics
-        clf_labels = torch.argmax(targets[3], dim=2).squeeze(1)
+        clf_labels = torch.argmax(cls_target, dim=2).squeeze(1)
         clf_preds = torch.argmax(clf_outputs, dim=1)
 
-        clf_loss = clf_criterion(clf_outputs.squeeze().float(), targets[3].squeeze().float())
+        clf_loss = clf_criterion(clf_outputs.squeeze().float(), cls_target.squeeze().float())
         kappa = cohen_kappa_score(clf_labels.detach().cpu().numpy(), clf_preds.detach().cpu().numpy())
         acc = np.mean(clf_labels.detach().cpu().numpy() == clf_preds.detach().cpu().numpy())
 
@@ -141,7 +141,7 @@ class My_Resnet_50(nn.Module):
     def __init__(self, img_ch=3, output_ch=1, num_classes=3):
         super(My_Resnet_50, self).__init__()
 
-        resnet = models.resnet18(pretrained=True)
+        resnet = models.resnet50(pretrained=True, )
         num_ftrs = resnet.fc.in_features
         resnet.fc = nn.Linear(num_ftrs, num_classes)
         self.model = resnet
@@ -184,18 +184,18 @@ def main():
             dir = args.save_path,
             # Track hyperparameters and run metadata
             config={
+                    "Training_type":args.train_type,
                     "Encoder":args.encoder,
                     "Augmentation": args.augmentation,
-                    "distance_type":args.distance_type,
                     "train_type": args.train_type,
                     "train_batch_size":args.batch_size,
                     "val_batch_size": args.val_batch_size,
                     "num_epochs": args.num_epochs,
-                    "loss_type": "dice",
-                    "LR_seg": args.LR_seg,
+                    "loss_type": args.loss_type,
                     "LR_clf": args.LR_clf,
                     "pretrain":args.pretrain,
             })
+            
             wandb.define_metric("epochs")
             wandb.define_metric("train*", step_metric="epochs")
             wandb.define_metric("val*", step_metric="epochs")
@@ -203,33 +203,35 @@ def main():
         encoder = args.encoder
         usenorm = args.usenorm
         attention_type = args.attention
-        if args.pretrain in ['imagenet', 'ssl', 'swsl', 'instagram']:
-            pretrain = args.pretrain
-        else:
-            pretrain = None
 
+        # initiate Model
         model = My_Resnet_50()
-
         if torch.cuda.device_count() > 1:
             model = nn.DataParallel(model)
 
         model.to(device)
         logging.info(model)
+        model = nn.DataParallel(model)
 
+        # Criterion
         weights = [0.49, 1.88, 2.35]
         class_weights = torch.FloatTensor(weights).cuda()        
         criterion = torch.nn.CrossEntropyLoss()
 
+        # Optimizer
         optimizer = Adam([
             {"params": model.module.parameters(), "lr": args.LR_clf}
         ])
 
+        # Dataloader
+        img_names = glob.glob(os.path.join(args.img_path, "*.bmp"))
+        random.shuffle(img_names)
+        train_end_index = int(len(img_names) * args.train_percentage)
+        val_end_index = int(len(img_names) * (args.train_percentage + args.val_percentage))
+        train_img_names = img_names[:train_end_index]
+        val_img_names = img_names[train_end_index : val_end_index]
 
-        train_file_names = glob.glob(os.path.join(args.train_path, "*.png"))
-        val_file_names = glob.glob(os.path.join(args.val_path, "*.png"))
-        random.shuffle(val_file_names)
-
-        trainLoader, devLoader = generate_dataset(train_file_names, val_file_names, args.batch_size, args.val_batch_size, args.distance_type, args.clahe)
+        trainLoader, devLoader = generate_dataset(train_img_names, val_img_names, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type)
 
         epoch_start = 0
         max_dice = 0.8
@@ -241,11 +243,11 @@ def main():
         for epoch in range(epoch_start + 1, epoch_start + 1 + args.num_epochs):
 
             print('\nEpoch: {}'.format(epoch))
-            train_data = seg_clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, loss_weights, startpoint, training=True)
-            dev_data = seg_clf_iteration(epoch, model, optimizer, criterion, devLoader, device, loss_weights, startpoint, training=False)
+            train_data = clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, loss_weights, startpoint, training=True)
+            dev_data = clf_iteration(epoch, model, optimizer, criterion, devLoader, device, loss_weights, startpoint, training=False)
 
             epoch_info = "Epoch: {}".format(epoch)
-            # train_info = f"Tr_SegLoss:{train_data["seg_loss"]}, Tr_MutiLoss:{train_data["multi_loss"]}"
+
             train_info = f" Train_Clf Loss:{train_data['cls_loss']}, Acc: {train_data['cls_acc']}, Kappa:{train_data['cls_kappa']}"
             val_info = f" Val_Clf Loss:{dev_data['cls_loss']}, Acc: {dev_data['cls_acc']}, Kappa:{dev_data['cls_kappa']}:"
             
@@ -280,7 +282,7 @@ def main():
                     torch.save(model.state_dict(), save_name)
                     print('Epoch {} model saved!'.format(epoch))
 
-            wandb.finish
+        wandb.finish()
 
 if __name__ == "__main__":
     main()

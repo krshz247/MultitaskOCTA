@@ -8,3 +8,8 @@
 pri_dis.py
 /wandb
 /log
+.DS_Store
+__pycache__/
+*.pth
+*.pt
+/Datasets

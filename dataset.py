@@ -11,6 +11,7 @@ from tqdm import tqdm
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 from scipy import io
 from scipy.ndimage import distance_transform_edt
 from augmentation import augment, pre_process
@@ -34,17 +35,44 @@ def mean_and_std(paths):
     print(s)
 
     return m, s
+class DatasetImageClassification(Dataset):
 
+    def __init__(self, img_names, input_size, mean, std, clahe):
 
-class DatasetImageMaskContourDist(Dataset):
+        self.img_names = img_names
+        self.size = input_size
+        self.mean = mean
+        self.std = std
+        self.clahe = clahe
 
-    # dataset_type(cup,disc,polyp),
-    # distance_type(dist_mask,dist_contour,dist_signed)
+    def __len__(self):
 
-    def __init__(self, img_names, gt_names, distance_type, mean, std, clahe):
+        return len(self.img_names)
+
+    def __getitem__(self, idx):
+
+        img_file_name = self.img_names[idx]
+        image = load_image(img_file_name, self.mean, self.std, self.clahe, self.size)
+        
+        cls = load_class(img_file_name)
+
+        data_transforms = transforms.Compose(
+        [
+            transforms.ToTensor(),
+        ])
+        image = data_transforms(image)
+
+        # mask , contour, dist = masks
+
+        return image, cls
+
+class DatasetImageFazMaskContourDist(Dataset):
+
+    def __init__(self, img_names, gt_names, input_size, distance_type, mean, std, clahe):
 
         self.img_names = img_names
         self.gt_names = gt_names
+        self.size = input_size
         self.distance_type = distance_type
         self.mean = mean
         self.std = std
@@ -58,36 +86,70 @@ class DatasetImageMaskContourDist(Dataset):
 
         img_file_name = self.img_names[idx]
         gt_file_name = self.gt_names[idx]
-        image = load_image(img_file_name, self.mean, self.std, self.clahe)
+        image = load_image(img_file_name, self.mean, self.std, self.clahe, self.size)
 
-        mask = load_mask(gt_file_name)
-        contour = load_contourheat(gt_file_name)
-        dist = load_distance(gt_file_name, self.distance_type)
+        mask = load_mask(gt_file_name, self.size)[0, :, :]
+        contour = load_contourheat(gt_file_name, self.size)[0, :, :]
+        dist = load_distance(gt_file_name, self.distance_type, self.size)[0, :, :]
 
-        # contour, dist = pre_process(mask)
-        # normalize = transforms.Normalize(mean=self.mean, std=self.std)
         image = (image - self.mean) / self.std
-
-
         masks = [mask , contour, dist]
-        
-        cls = load_class(img_file_name)
 
-        image, masks = augment(image, masks)
         for i, mask in enumerate(masks):
             masks[i] = torch.from_numpy(np.expand_dims(mask, 0)).float()
+        
+        cls = load_class(img_file_name)
 
         data_transforms = transforms.Compose(
         [
             transforms.ToTensor(),
-        ]
-        )
+        ])
         image = data_transforms(image)
 
-        mask, contour, dist = masks
+        mask , contour, dist = masks
 
         return image, mask, contour, dist, cls
-        # return image, mask
+
+
+
+class DatasetImageMaskContourDist(Dataset):
+
+    def __init__(self, img_names, gt_names, input_size, distance_type, mean, std, clahe):
+
+        self.img_names = img_names
+        self.gt_names = gt_names
+        self.size = input_size
+        self.distance_type = distance_type
+        self.mean = mean
+        self.std = std
+        self.clahe = clahe
+
+    def __len__(self):
+
+        return len(self.img_names)
+
+    def __getitem__(self, idx):
+
+        img_file_name = self.img_names[idx]
+        gt_file_name = self.gt_names[idx]
+        image = load_image(img_file_name, self.mean, self.std, self.clahe, self.size)
+
+        mask = load_mask(gt_file_name, self.size)
+        contour = load_contourheat(gt_file_name, self.size)
+        dist = load_distance(gt_file_name, self.distance_type, self.size)
+
+        image = (image - self.mean) / self.std
+        masks = [mask , contour, dist]
+        
+        cls = load_class(img_file_name)
+
+        data_transforms = transforms.Compose(
+        [
+            transforms.ToTensor(),
+        ])
+        image = data_transforms(image)
+
+        return image, mask, contour, dist, cls
 
 
 def clahe_equalized(imgs):
@@ -102,9 +164,11 @@ def clahe_equalized(imgs):
     return imgs_equalized
 
 
-def load_image(path, mean, std, clahe):
+def load_image(path, mean, std, clahe, size):
 
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    img = cv2.resize(img, size)
+    img = img / img.max()
     # print(type(img))
     # if clahe:
     #     img = clahe_equalized(img)
@@ -113,14 +177,24 @@ def load_image(path, mean, std, clahe):
     return img
 
 
-def load_mask(path):
+def load_mask(path, size):
 
     # mask = cv2.imread(path.replace("image", "mask").replace("bmp", "bmp"), 0)
-    mask = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-    mask[mask == 255] = 1
+    vessel_path = path.replace("gt_full", "gt_vessel")
+    faz_path = path.replace("gt_full", "gt_faz")
+    vessel_mask = cv2.resize(cv2.imread(vessel_path, cv2.IMREAD_GRAYSCALE), size, interpolation = cv2.INTER_NEAREST)
+    faz_mask = cv2.resize(cv2.imread(faz_path, cv2.IMREAD_GRAYSCALE), size, interpolation = cv2.INTER_NEAREST)
+    vessel_mask = vessel_mask / vessel_mask.max()
+    faz_mask = faz_mask / faz_mask.max()
+    background_mask = np.ones(size) - (faz_mask + vessel_mask)
 
-    # return torch.from_numpy(np.expand_dims(mask, 0)).long()
-    return mask
+    combined_mask = np.stack([faz_mask, vessel_mask, background_mask], axis=0)
+    combined_mask = combined_mask
+
+    # mask = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    # mask[mask == 255] = 1
+
+    return combined_mask
 
 
 def load_contour(path):
@@ -131,16 +205,27 @@ def load_contour(path):
     return torch.from_numpy(np.expand_dims(contour, 0)).float()
 
 
-def load_contourheat(path):
+def load_contourheat(path, size):
 
-    path = path.replace("mask", "contour").replace("bmp", "mat")
+    # path = path.replace("mask", "contour_img").replace("bmp", "mat")
+    
     # contour = cv2.imread(path)
     # contour = contour.mean(2)
     # contour[contour == 255] = 1
-    contour = io.loadmat(path)["contour"]
+    # contour = io.loadmat(path)["contour"]
 
-    # return torch.from_numpy(np.expand_dims(contour, 0)).float()
-    return contour
+    # contour = cv2.imread(path.replace("mask", "contour_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
+
+    faz_contour = cv2.imread(path.replace("gt_full", "gt_faz").replace("mask", "contour_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
+    faz_contour = cv2.resize(faz_contour, size, interpolation = cv2.INTER_NEAREST)
+
+    vessel_contour = cv2.imread(path.replace("gt_full", "gt_vessel").replace("mask", "contour_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
+    vessel_contour = cv2.resize(vessel_contour, size, interpolation = cv2.INTER_NEAREST)
+
+    combined_mask = np.stack([faz_contour, vessel_contour], axis=0)
+    combined_mask = combined_mask / combined_mask.max()
+
+    return combined_mask
 
 
 def load_class(path):
@@ -158,7 +243,7 @@ def load_class(path):
     return torch.from_numpy(np.expand_dims(cls, 0)).long()
 
 
-def load_distance(path, distance_type):
+def load_distance(path, distance_type, size):
 
     if distance_type == "dist_mask":
         path = path.replace("image", "dist_mask").replace("png", "mat")
@@ -174,8 +259,19 @@ def load_distance(path, distance_type):
         dist = io.loadmat(path)["s_dis01"]
 
     if distance_type == "dist_signed11":
-        path = path.replace("mask", "dist_signed11").replace("bmp", "mat")
-        dist = io.loadmat(path)["s_dis11"]
+        # path = path.replace("mask", "dist_signed11_img").replace("bmp", "mat")
+        # dist = io.loadmat(path)["s_dis11"]
+        dist = cv2.imread(path.replace("mask", "dist_signed11_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
+
+        faz_dist = cv2.imread(path.replace("gt_full", "gt_faz").replace("mask", "dist_signed11_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
+        faz_dist = cv2.resize(faz_dist, size, interpolation = cv2.INTER_NEAREST)
+
+        vessel_dist = cv2.imread(path.replace("gt_full", "gt_vessel").replace("mask", "dist_signed11_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
+        vessel_dist = cv2.resize(vessel_dist, size, interpolation = cv2.INTER_NEAREST)
+
+        combined_mask = np.stack([faz_dist, vessel_dist], axis=0)
+        combined_mask = combined_mask / combined_mask.max()
+
 
     if distance_type == "dist_fore":
         path = path.replace("image", "dist_fore").replace("png", "mat")
@@ -183,7 +279,7 @@ def load_distance(path, distance_type):
 
 
     # return torch.from_numpy(np.expand_dims(dist, 0)).float()
-    return dist
+    return combined_mask
 
 
 class DatasetCornea(Dataset):

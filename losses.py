@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import segmentation_models_pytorch as smp
+from clDice.cldice_loss.pytorch.cldice import soft_dice_cldice 
 
 
 class LossMulti:
@@ -105,15 +106,12 @@ class LossPsiNet:
         return criterion
 
 
-class My_multiLoss:
+class FAZ_multiLoss:
     def __init__(self, weights=[1, 1, 1]):   # weights=[1,1,1]
 
         self.criterion1 = smp.losses.DiceLoss(mode="binary")
-        # self.criterion2 = smp.utils.losses.CrossEntropyLoss()
-        # self.criterion2 = smp.utils.losses.BCEWithLogitsLoss()
         self.criterion2 = nn.MSELoss()
         self.criterion3 = nn.MSELoss()
-        # self.criterion3 = nn.SmoothL1Loss()
         self.weights = weights
 
     def __call__(self, outputs1, outputs2, outputs3, targets1, targets2, targets3):
@@ -126,6 +124,30 @@ class My_multiLoss:
         )
 
         return criterion
+    
+class Vessel_FAZ_multiLoss:
+    def __init__(self, weights=[1, 1, 1]):   # weights=[1,1,1]
+
+        self.dice = smp.losses.DiceLoss(mode="multilabel")
+        self.cl_dice = soft_dice_cldice()
+        self.criterion2 = nn.MSELoss()
+        self.criterion3 = nn.MSELoss()
+        self.weights = weights
+
+    def __call__(self, outputs1, outputs2, outputs3, targets1, targets2, targets3):
+
+        vessel_cldice = self.cl_dice(outputs1[:, 1:2, ...], targets1[:, 1:2, ...])
+        faz_dice = self.dice(outputs1[:, 0:1, ...], targets1[:, 0:1, ...])
+        background_dice = self.dice(outputs1[:, 2:3, ...], targets1[:, 2:3, ...])
+        seg_loss = vessel_cldice + faz_dice + background_dice
+        seg_loss = self.dice(outputs1, targets1)
+        multi_loss = (
+            self.weights[0] * (seg_loss)
+            + self.weights[1] * self.criterion2(outputs2, targets2)
+            + self.weights[2] * self.criterion3(outputs3, targets3)
+        )
+
+        return multi_loss, seg_loss , vessel_cldice, faz_dice, background_dice
 
 
 # Lovasz loss

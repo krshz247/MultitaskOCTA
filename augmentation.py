@@ -22,22 +22,29 @@ def augment(image, masks):
         alb.augmentations.geometric.transforms.HorizontalFlip(p=0.5),
         alb.augmentations.geometric.transforms.VerticalFlip(p=0.5),
 
-        alb.OneOf([
-          alb.augmentations.transforms.CLAHE(clip_limit=3),          
-          alb.augmentations.transforms.GaussNoise(var_limit=(20.0)),
-          alb.augmentations.transforms.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
-          alb.augmentations.transforms.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), always_apply=False, p=0.5),
-          alb.augmentations.transforms.RandomGamma(gamma_limit=(80, 120), eps=None, always_apply=False, p=0.5),
-          alb.augmentations.transforms.GaussNoise(var_limit=(2.5500000000000003, 12.75), per_channel=False, p=0.5)
-        ], p= 0.6),
+        # alb.OneOf([
+        #   alb.augmentations.transforms.CLAHE(clip_limit=3),          
+        #   alb.augmentations.transforms.GaussNoise(var_limit=(20.0)),
+        #   alb.augmentations.transforms.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
+        #   alb.augmentations.transforms.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), always_apply=False, p=0.5),
+        #   alb.augmentations.transforms.RandomGamma(gamma_limit=(80, 120), eps=None, always_apply=False, p=0.5),
+        #   alb.augmentations.transforms.GaussNoise(var_limit=(2.5500000000000003, 12.75), per_channel=False, p=0.5)
+        # ], p= 0.6),
 
-        alb.OneOf([
-          alb.GaussianBlur(),
-          alb.MedianBlur(),
-        ]),
-    ], p=0.6)
+        # alb.OneOf([
+        #   alb.GaussianBlur(),
+        #   alb.MedianBlur(),
+        # ]),
+    ], p=0.6, is_check_shapes=False)
+    
+    # image_resize = alb.augmentations.geometric.resize.Resize(384,384)
+    # mask_resize = alb.augmentations.geometric.resize.Resize(384,384, cv2.INTER_NEAREST)
 
     transformed = transform(image=image, masks=masks)
+    # transformed_image = image_resize(image=transformed['image'])['image']
+    # transformed_masks = []
+    # for mask in transformed['masks']:
+    #     transformed_masks.append(mask_resize(image=mask)['image'])
     transformed_image = transformed['image']
     transformed_masks = transformed['masks']
 
