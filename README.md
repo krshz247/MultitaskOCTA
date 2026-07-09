@@ -22,7 +22,7 @@ This project:
 
 ## Results
 
-All numbers below are from 5-fold cross-validation on the OCTA-500 superficial en-face images (see thesis for full discussion).
+All numbers below are from 5-fold cross-validation on the OCTA-500 superficial en-face images.
 
 **Segmentation** (Jaccard / Dice / clDice, %):
 
