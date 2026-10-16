@@ -85,7 +85,7 @@ Training the joint RV + FAZ model (this work):
 python faz_vessel_seg_cls.py \
   --train_path <path> --val_path <path> --test_path <path> \
   --model_type unet_smp --train_type multitask --loss_type clDice \
-  --batch_size 16 --num_epochs 500 --LR_seg 1e-4 --LR_clf 1e-4 --classnum 3
+  --batch_size 4 --num_epochs 100 --startpoint 20 --LR_seg 1e-4 --LR_clf 2e-5 --classnum 3
 ```
 
 Training the original FAZ-only BSDA-Net baseline:
