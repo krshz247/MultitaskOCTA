@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import segmentation_models_pytorch as smp
-from clDice.cldice_loss.pytorch.cldice import soft_dice_cldice 
+from clDice.cldice_loss.pytorch.soft_skeleton import soft_skel
 
 
 class LossMulti:
@@ -125,11 +125,38 @@ class FAZ_multiLoss:
 
         return criterion
     
+class VesselClDiceLoss(nn.Module):
+    """Soft Dice + soft clDice (thesis Eq. 3.14) for a single-channel vessel prediction.
+
+    Takes raw logits and a binary target of shape (B, 1, H, W). The vendored soft_dice_cldice slices
+    [:, 1:] on the channel axis (it expects a background channel), which is empty for a single channel and
+    silently turned the clDice term into zero.
+    """
+
+    def __init__(self, iter_=3, alpha=0.5, smooth=1.0):
+        super().__init__()
+        self.iter = iter_
+        self.alpha = alpha
+        self.smooth = smooth
+        self.dice = smp.losses.DiceLoss(mode="binary", smooth=1)
+
+    def forward(self, logits, target):
+        eps = 1e-7
+        prob = torch.sigmoid(logits)
+        dice = self.dice(logits, target)
+        skel_pred = soft_skel(prob, self.iter)
+        skel_true = soft_skel(target, self.iter)
+        tprec = (torch.sum(skel_pred * target) + self.smooth) / (torch.sum(skel_pred) + self.smooth)
+        tsens = (torch.sum(skel_true * prob) + self.smooth) / (torch.sum(skel_true) + self.smooth)
+        cl_dice = 1.0 - 2.0 * (tprec * tsens) / (tprec + tsens).clamp_min(eps)
+        return (1.0 - self.alpha) * dice + self.alpha * cl_dice
+
+
 class Vessel_FAZ_multiLoss:
     def __init__(self, weights=[1, 1, 1]):   # weights=[1,1,1]
 
         self.dice = smp.losses.DiceLoss(mode="multilabel")
-        self.cl_dice = soft_dice_cldice()
+        self.cl_dice = VesselClDiceLoss()
         self.criterion2 = nn.MSELoss()
         self.criterion3 = nn.MSELoss()
         self.weights = weights
@@ -139,8 +166,8 @@ class Vessel_FAZ_multiLoss:
         vessel_cldice = self.cl_dice(outputs1[:, 1:2, ...], targets1[:, 1:2, ...])
         faz_dice = self.dice(outputs1[:, 0:1, ...], targets1[:, 0:1, ...])
         background_dice = self.dice(outputs1[:, 2:3, ...], targets1[:, 2:3, ...])
-        seg_loss = vessel_cldice + faz_dice + background_dice
-        seg_loss = self.dice(outputs1, targets1)
+        # thesis Eq. 3.14: Dice on the FAZ channel + soft clDice on the vessel channel
+        seg_loss = vessel_cldice + faz_dice
         multi_loss = (
             self.weights[0] * (seg_loss)
             + self.weights[1] * self.criterion2(outputs2, targets2)

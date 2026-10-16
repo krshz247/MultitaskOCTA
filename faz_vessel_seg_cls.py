@@ -200,7 +200,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         if not isinstance(seg_outputs, list):
             seg_outputs = [seg_outputs]
 
-        seg_preds = torch.round(seg_outputs[0])
+        seg_preds = torch.round(torch.sigmoid(seg_outputs[0]))  # seg head outputs logits
         clf_outputs = model.module.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
 
         dice_criterion, jaccard_criterion, clf_criterion = criterion[0], criterion[1], criterion[2]
@@ -397,7 +397,12 @@ def main():
         )
         logging.info(args)
 
-        device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = torch.device(CUDA_SELECT)
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
 
         # logging in Wandb
         if args.log_mode:
@@ -445,12 +450,12 @@ def main():
             params.requires_grad = False
 
         weights = [0.49, 1.88, 2.35]
-        class_weights = torch.FloatTensor(weights).cuda()
+        class_weights = torch.FloatTensor(weights).to(device)
 
         criterion = [
             torchmetrics.Dice().to(device),
             smp.losses.JaccardLoss("binary"),
-            torch.nn.CrossEntropyLoss()
+            torch.nn.CrossEntropyLoss(weight=class_weights)
         ]
 
         optimizer = Adam([
