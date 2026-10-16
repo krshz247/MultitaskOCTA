@@ -16,3 +16,4 @@ __pycache__/
 .vscode/
 .venv-smoke/
 /runs
+/runs_resnet50_partial
