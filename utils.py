@@ -301,7 +301,7 @@ def generate_dataset(train_img_names, val_img_names, test_img_names, input_size,
 
     if train_type == "Vessel_FAZ":
 
-        train_dataset = DatasetImageMaskContourDist(train_img_names, train_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
+        train_dataset = DatasetImageMaskContourDist(train_img_names, train_gt_names, input_size, distance_type, train_mean, train_std, do_clahe, augment=True)
         valid_dataset = DatasetImageMaskContourDist(val_img_names, val_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
         test_dataset = DatasetImageMaskContourDist(test_img_names, test_gt_names, input_size, distance_type, train_mean, train_std, do_clahe)
 
@@ -367,7 +367,8 @@ def create_train_arg_parser():
     parser.add_argument("--startpoint", type=int, default=20, help="start cotraining point.")
     parser.add_argument("--clahe", type=bool, default=False, help="do clahe.")
     parser.add_argument("--classnum", type=int, default=3, help="clf class number.")
-    parser.add_argument("--fold", type=str, default=0, help="Fold for training.")
+    parser.add_argument("--fold", type=int, default=0, help="Fold used as the test set (validation = next fold) when --num_folds > 1.")
+    parser.add_argument("--num_folds", type=int, default=5, help="Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split.")
     parser.add_argument("--augmentation", type=str, default=True, help="using data augmentation.")
     return parser
 

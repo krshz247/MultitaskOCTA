@@ -114,7 +114,7 @@ class DatasetImageFazMaskContourDist(Dataset):
 
 class DatasetImageMaskContourDist(Dataset):
 
-    def __init__(self, img_names, gt_names, input_size, distance_type, mean, std, clahe):
+    def __init__(self, img_names, gt_names, input_size, distance_type, mean, std, clahe, augment=False):
 
         self.img_names = img_names
         self.gt_names = gt_names
@@ -123,6 +123,7 @@ class DatasetImageMaskContourDist(Dataset):
         self.mean = mean
         self.std = std
         self.clahe = clahe
+        self.augment = augment
 
     def __len__(self):
 
@@ -139,6 +140,8 @@ class DatasetImageMaskContourDist(Dataset):
         dist = load_distance(gt_file_name, self.distance_type, self.size)
 
         image = (image - self.mean) / self.std
+        if self.augment:
+            image, mask, contour, dist = random_rot_flip(image, mask, contour, dist)
         masks = [mask , contour, dist]
         
         cls = load_class(img_file_name)
@@ -150,6 +153,23 @@ class DatasetImageMaskContourDist(Dataset):
         image = data_transforms(image)
 
         return image, mask, contour, dist, cls
+
+
+def random_rot_flip(image, *maps):
+    """Random 90-degree rotation plus horizontal/vertical flips (thesis section 3.3.3), applied identically
+    to the image (H, W) and to every (C, H, W) target map."""
+    k = random.randint(0, 3)
+    flip_h, flip_v = random.random() < 0.5, random.random() < 0.5
+
+    def apply(a, spatial_axes):
+        a = np.rot90(a, k, axes=spatial_axes)
+        if flip_h:
+            a = np.flip(a, axis=spatial_axes[1])
+        if flip_v:
+            a = np.flip(a, axis=spatial_axes[0])
+        return np.ascontiguousarray(a)
+
+    return (apply(image, (0, 1)),) + tuple(apply(m, (1, 2)) for m in maps)
 
 
 def clahe_equalized(imgs):

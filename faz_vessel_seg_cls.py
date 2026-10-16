@@ -56,6 +56,28 @@ def wb_mask(image, pred_mask, true_mask, labels):
         "ground truth" : {"mask_data" : true_mask, "class_labels": labels}})
 
 
+def kfold_split(img_names, num_folds, fold, seed=2021):
+    """Stratified (by the N/D/M prefix of the file name) k-fold split: fold `fold` is the test set,
+    fold `fold + 1` the validation set and the remaining folds the training set."""
+    assert 0 <= fold < num_folds
+    rng = random.Random(seed)
+    folds = [[] for _ in range(num_folds)]
+    by_class = {}
+    for name in img_names:
+        by_class.setdefault(os.path.basename(name)[0], []).append(name)
+    offset = 0
+    for cls in sorted(by_class):
+        names = sorted(by_class[cls])
+        rng.shuffle(names)
+        for i, name in enumerate(names):
+            folds[(i + offset) % num_folds].append(name)
+        offset += len(names)  # keeps fold sizes balanced across classes
+    test = folds[fold]
+    val = folds[(fold + 1) % num_folds]
+    train = [n for i, f in enumerate(folds) if i not in (fold, (fold + 1) % num_folds) for n in f]
+    return train, val, test
+
+
 def segmentation_iteration(model, optimizer, model_type, criterion, data_loader, device, writer, training=False):
     running_loss = 0.0
     total_size = 0
@@ -414,6 +436,8 @@ def main():
                     "img_depth" : args.img_path.split("/")[-1],
                     "gt_type": args.gt_path.split("/")[-1],
                     "Encoder":args.encoder,
+                    "fold": args.fold,
+                    "num_folds": args.num_folds,
                     "Augmentation": args.augmentation,
                     "distance_type":args.distance_type,
                     "train_type": args.train_type,
@@ -466,21 +490,29 @@ def main():
 
         # model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
         if args.train_type == "Vessel_FAZ":
-            img_names = glob.glob(os.path.join(args.img_path, "*.bmp"))
+            img_names = sorted(glob.glob(os.path.join(args.img_path, "*.bmp")))
             gt_names = list()
-            random.shuffle(img_names)
             for name in img_names:
                 gt_names.append(name.replace("image_surface", args.gt_path.split("/")[-2] + "/mask"))
 
-            train_end_index = int(len(img_names) * args.train_percentage)
-            val_end_index = int(len(img_names) * (args.train_percentage + args.val_percentage))
-            train_img_names = img_names[:train_end_index]
-            val_img_names = img_names[train_end_index : val_end_index]
-            test_img_names = img_names[val_end_index:]
+            if args.num_folds > 1:
+                train_img_names, val_img_names, test_img_names = kfold_split(img_names, args.num_folds, args.fold)
+                to_gt = lambda names: [n.replace("image_surface", args.gt_path.split("/")[-2] + "/mask") for n in names]
+                train_gt_names, val_gt_names, test_gt_names = to_gt(train_img_names), to_gt(val_img_names), to_gt(test_img_names)
+                logging.info("fold %d/%d: train %d, val %d, test %d", args.fold, args.num_folds, len(train_img_names), len(val_img_names), len(test_img_names))
+            else:
+                paired = list(zip(img_names, gt_names))
+                random.shuffle(paired)
+                img_names, gt_names = [p[0] for p in paired], [p[1] for p in paired]
+                train_end_index = int(len(img_names) * args.train_percentage)
+                val_end_index = int(len(img_names) * (args.train_percentage + args.val_percentage))
+                train_img_names = img_names[:train_end_index]
+                val_img_names = img_names[train_end_index : val_end_index]
+                test_img_names = img_names[val_end_index:]
 
-            train_gt_names = gt_names[:train_end_index]
-            val_gt_names = gt_names[train_end_index : val_end_index]
-            test_gt_names = gt_names[val_end_index:]
+                train_gt_names = gt_names[:train_end_index]
+                val_gt_names = gt_names[train_end_index : val_end_index]
+                test_gt_names = gt_names[val_end_index:]
         else:
             train_img_names = glob.glob(os.path.join(args.train_path, "*.png"))
             val_file_names = glob.glob(os.path.join(args.val_path, "*.png"))
@@ -529,8 +561,8 @@ def main():
                 wandb.log({"val": dev_data, "epochs": epoch})
                 wandb.log({"test": test_data, "epochs": epoch})
 
-            best_name = os.path.join(args.save_path, "dice_loss_"  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_kappa'], 4)) + ".pt")
-            save_name = os.path.join(args.save_path, str(epoch)  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_acc'], 4)) + ".pt")
+            best_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_dice_loss_"  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_kappa'], 4)) + ".pt")
+            save_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_" + str(epoch)  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_acc'], 4)) + ".pt")
 
             if max_dice <= dev_data['seg_loss']:
                 max_dice = dev_data['seg_loss']

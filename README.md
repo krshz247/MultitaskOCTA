@@ -88,6 +88,8 @@ python faz_vessel_seg_cls.py \
   --batch_size 4 --num_epochs 100 --startpoint 20 --LR_seg 1e-4 --LR_clf 2e-5 --classnum 3
 ```
 
+`faz_vessel_seg_cls.py` evaluates with stratified 5-fold cross-validation: run it once per fold with `--fold 0..4` (fold *i* is the test set, fold *i+1* the validation set; `--num_folds 0` restores the old random 70/20/10 split). Training images get random 90° rotations and horizontal/vertical flips. Build the dataset first with `python Preprocessing/build_processed_octa500.py --octa500 <OCTA500> --out Datasets/processed_OCTA500/combined`.
+
 Training the original FAZ-only BSDA-Net baseline:
 
 ```bash
