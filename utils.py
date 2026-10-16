@@ -354,7 +354,7 @@ def create_train_arg_parser():
     parser.add_argument("--pretrained_model_path", type=str, default=None, help="If use_pretrained is true, provide checkpoint.")
     parser.add_argument("--save_path", type=str, help="Model save path.")
     parser.add_argument("--wandb_path", type=str, help="wandb log path.")
-    parser.add_argument("--encoder", type=str, default="resnet50", help="encoder.")
+    parser.add_argument("--encoder", type=str, default="timm-resnest50d", help="encoder (thesis: ResNeSt50 = timm-resnest50d).")
     parser.add_argument("--pretrain", type=str, default="imagenet", help="choose pretrain.")
     parser.add_argument("--loss_type", type=str, default=None, help="loss type.")
     parser.add_argument("--local_rank", default=0, type=int, help='node rank for distributed training')
