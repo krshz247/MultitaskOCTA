@@ -13,4 +13,4 @@ __pycache__/
 *.pth
 *.pt
 /Datasets
-.vscode/
+.vscode/.venv-smoke/
