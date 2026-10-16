@@ -22,6 +22,8 @@ from sklearn.metrics import cohen_kappa_score
 from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
 from sklearn.metrics import confusion_matrix
 from clDice.cldice_metric.cldice import clDice
+from eval_metrics import evaluate_loader
+import json
 
 
 matplotlib.use('Agg')
@@ -527,10 +529,12 @@ def main():
         loss_weights = [3, 1, 1]
         logging.info(loss_weights)
         startpoint = args.startpoint
+        history = []
 
         for epoch in range(epoch_start + 1, epoch_start + 1 + args.num_epochs):
 
-            if epoch >= startpoint:
+            # thesis Eq. 3.16: the classifier joins the loss for epoch > tau, so unfreeze it at the same point
+            if epoch > startpoint:
                 for params in model.module.clf_model.parameters():
                     params.requires_grad = True
 
@@ -560,6 +564,11 @@ def main():
                 wandb.log({"train": train_data, "epochs": epoch})
                 wandb.log({"val": dev_data, "epochs": epoch})
                 wandb.log({"test": test_data, "epochs": epoch})
+
+            if args.eval_every and (epoch % args.eval_every == 0 or epoch == epoch_start + args.num_epochs):
+                history.append({"epoch": epoch, "val": evaluate_loader(model, devLoader, device), "test": evaluate_loader(model, testLoader, device)})
+                with open(os.path.join(args.save_path, "results_fold{}.json".format(args.fold)), "w") as fh:
+                    json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "history": history}, fh, indent=1)
 
             best_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_dice_loss_"  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_kappa'], 4)) + ".pt")
             save_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_" + str(epoch)  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_acc'], 4)) + ".pt")

@@ -3,9 +3,9 @@
 Python port of Preprocessing/pre_dis.m (boundary heatmap + signed distance map), plus the
 folder assembly that dataset.py expects but no script in the repo produced:
 
-    <out>/image_surface/<N|D|M>_<3|6>_<id>.bmp        OCTA(ILM_OPL) projection map
+    <out>/image_surface/<N|D|M>_<3|6>_<id>.bmp        OCTA projection map (--projection, default ILM_OPL = B5)
     <out>/gt_full/mask/<name>.bmp                     FAZ U vessel (only used to derive paths)
-    <out>/gt_vessel/mask/<name>.bmp                   GT_LargeVessel U GT_Capillary (minus FAZ pixels)
+    <out>/gt_vessel/mask/<name>.bmp                   GT_LargeVessel [U GT_Capillary, --vessel] (minus FAZ pixels)
     <out>/gt_faz/mask/<name>.bmp                      GT_FAZ
     <out>/gt_{vessel,faz}/contour_img/<name>.png      Gaussian boundary heatmap (pre_dis.m `contour`)
     <out>/gt_{vessel,faz}/dist_signed11_img/<name>.png  signed distance map (pre_dis.m `s_dis11`, (x+1)/2)
@@ -101,6 +101,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--octa500", required=True, help="raw OCTA500 folder (contains Label/, OCTA_3mm/, OCTA_6mm/)")
     ap.add_argument("--out", required=True, help="output root, e.g. Datasets/processed_OCTA500/combined")
+    ap.add_argument("--projection", default="ILM_OPL", choices=["ILM_OPL", "FULL", "OPL_BM"],
+                    help="OCTA en-face projection used as input: ILM_OPL = B5 superficial (thesis), FULL = B4, OPL_BM = B6 deep")
+    ap.add_argument("--vessel", default="large_capillary", choices=["large_capillary", "large"],
+                    help="vessel ground truth: GT_LargeVessel U GT_Capillary, or GT_LargeVessel only")
     ap.add_argument("--limit", type=int, default=0, help="only process the first N scans (debug)")
     args = ap.parse_args()
 
@@ -121,11 +125,12 @@ def main():
     for i in ids:
         area = "3" if i >= 10301 else "6"
         name = f"{CLASS_PREFIX[diseases[i]]}_{area}_{i}"
-        img = cv2.imread(os.path.join(args.octa500, f"OCTA_{area}mm", "Projection Maps", "OCTA(ILM_OPL)", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(os.path.join(args.octa500, f"OCTA_{area}mm", "Projection Maps", f"OCTA({args.projection})", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE)
         faz = cv2.imread(os.path.join(label_dir, "GT_FAZ", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127
         large = cv2.imread(os.path.join(label_dir, "GT_LargeVessel", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127
-        capil = cv2.imread(os.path.join(label_dir, "GT_Capillary", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127
-        vessel = large | capil
+        vessel = large
+        if args.vessel == "large_capillary":
+            vessel = large | (cv2.imread(os.path.join(label_dir, "GT_Capillary", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127)
         # dataset.py builds background = 1 - (faz + vessel); overlapping pixels would make it negative.
         overlap = int((vessel & faz).sum())
         if overlap:

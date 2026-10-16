@@ -368,6 +368,7 @@ def create_train_arg_parser():
     parser.add_argument("--clahe", type=bool, default=False, help="do clahe.")
     parser.add_argument("--classnum", type=int, default=3, help="clf class number.")
     parser.add_argument("--fold", type=int, default=0, help="Fold used as the test set (validation = next fold) when --num_folds > 1.")
+    parser.add_argument("--eval_every", type=int, default=0, help="every N epochs write per-image val/test metrics to results_fold<k>.json in save_path (0 = off).")
     parser.add_argument("--num_folds", type=int, default=5, help="Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split.")
     parser.add_argument("--augmentation", type=str, default=True, help="using data augmentation.")
     return parser
