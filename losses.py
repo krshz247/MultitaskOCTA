@@ -153,12 +153,13 @@ class VesselClDiceLoss(nn.Module):
 
 
 class Vessel_FAZ_multiLoss:
-    def __init__(self, weights=[1, 1, 1], vessel_bce=0.0, exclusion=0.0, aux_channels="both"):
+    def __init__(self, weights=[1, 1, 1], vessel_bce=0.0, exclusion=0.0, aux_channels="both", bg_dice=1.0):
         # vessel_bce / exclusion / aux_channels go beyond the thesis loss (see the tracker):
         #  - vessel_bce: weight of a pixel-wise BCE on the vessel channel. With a dense vessel mask the soft clDice term
         #    is exactly 0 for an all-vessel prediction, so Dice + clDice alone rewards that trivial solution.
         #  - exclusion: weight of mean(p_faz * p_vessel), discouraging vessel predictions inside the FAZ.
         #  - aux_channels: "faz" applies the heatmap / signed-distance MSE to the FAZ channel only.
+        self.bg_dice = bg_dice  # the segmentation head has 3 channels [FAZ, vessel, background]; the original loss summed all three
         self.vessel_bce = vessel_bce
         self.exclusion = exclusion
         self.aux_channels = aux_channels
@@ -173,8 +174,9 @@ class Vessel_FAZ_multiLoss:
         vessel_cldice = self.cl_dice(outputs1[:, 1:2, ...], targets1[:, 1:2, ...])
         faz_dice = self.dice(outputs1[:, 0:1, ...], targets1[:, 0:1, ...])
         background_dice = self.dice(outputs1[:, 2:3, ...], targets1[:, 2:3, ...])
-        # thesis Eq. 3.14: Dice on the FAZ channel + soft clDice on the vessel channel
-        seg_loss = vessel_cldice + faz_dice
+        # thesis Eq. 3.14 (Dice on the FAZ channel + soft clDice on the vessel channel) plus the background channel
+        # that the original code summed in as well, so that the 3-channel argmax is a meaningful class map
+        seg_loss = vessel_cldice + faz_dice + self.bg_dice * background_dice
         if self.vessel_bce:
             seg_loss = seg_loss + self.vessel_bce * nn.functional.binary_cross_entropy_with_logits(outputs1[:, 1:2], targets1[:, 1:2])
         if self.exclusion:

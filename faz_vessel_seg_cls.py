@@ -530,7 +530,7 @@ def main():
         loss_weights = [3, 1, 1]
         logging.info(loss_weights)
         startpoint = args.startpoint
-        LOSS_CFG.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels)
+        LOSS_CFG.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice)
         history = []
         best_score = -1.0
         tb_writer = SummaryWriter(os.path.join(args.save_path, "tb_fold{}".format(args.fold)))

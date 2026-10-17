@@ -28,7 +28,7 @@ def _cl_dice(p, t):
 def evaluate_loader(model, loader, device):
     """Channels of the segmentation output / target are [FAZ, vessel, background]."""
     model.eval()
-    seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice")}
+    seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice", "faz_dice_thr", "vessel_dice_thr")}
     # auxiliary branches: sums of squared error, and of squared deviation from the target's own per-image mean
     # (the error of the best constant prediction), per branch and channel
     aux_sse, aux_const, aux_n = np.zeros((2, 2)), np.zeros((2, 2)), 0
@@ -44,9 +44,14 @@ def evaluate_loader(model, loader, device):
                 dev = tgt[:, ch] - tgt[:, ch].mean(dim=(1, 2), keepdim=True)
                 aux_const[branch, ch] += float((dev ** 2).sum())
         aux_n += inputs.shape[0] * inputs.shape[2] * inputs.shape[3]
-        preds = (torch.sigmoid(seg_outputs[0]) > 0.5).cpu().numpy()
+        probs = torch.sigmoid(seg_outputs[0]).cpu().numpy()
+        preds_thr = probs > 0.5                      # independent per-channel threshold (channels may overlap)
+        cls_map = probs.argmax(axis=1)               # 3-class map: 0 = FAZ, 1 = vessel, 2 = background
+        preds = np.stack([cls_map == 0, cls_map == 1, cls_map == 2], axis=1)
         gts = (targets1 > 0.5).numpy()
         for b in range(preds.shape[0]):
+            seg["faz_dice_thr"].append(_dice_jaccard(preds_thr[b, 0], gts[b, 0])[0])
+            seg["vessel_dice_thr"].append(_dice_jaccard(preds_thr[b, 1], gts[b, 1])[0])
             d, j = _dice_jaccard(preds[b, 0], gts[b, 0])
             seg["faz_dice"].append(d)
             seg["faz_jaccard"].append(j)
@@ -83,13 +88,14 @@ def save_prediction_figure(model, dataset, indices, device, path, writer=None, t
 
     model.eval()
     fig, axs = plt.subplots(len(indices), 6, figsize=(18, 3 * len(indices)), squeeze=False)
-    titles = ["input", "GT (R=FAZ G=vessel)", "prediction", "vessel prob.", "pred. heatmap", "pred. SDM"]
+    titles = ["input", "GT (R=FAZ G=vessel)", "prediction (argmax)", "vessel prob.", "pred. heatmap", "pred. SDM"]
     for r, i in enumerate(indices):
         image, mask, _, _, cls = dataset[i]
         out = model.module.seg_forward(image.unsqueeze(0).float().to(device))
         prob = torch.sigmoid(out[0])[0].cpu().numpy()
         rgb = lambda a: np.stack([a[0], a[1], np.zeros_like(a[0])], axis=-1).clip(0, 1)
-        panels = [image[0].numpy(), rgb(np.asarray(mask)), rgb((prob > 0.5).astype(float)), prob[1],
+        cls_map = prob.argmax(axis=0)
+        panels = [image[0].numpy(), rgb(np.asarray(mask)), rgb(np.stack([cls_map == 0, cls_map == 1]).astype(float)), prob[1],
                   rgb(out[1][0].cpu().numpy()), rgb(out[2][0].cpu().numpy())]
         for c, p in enumerate(panels):
             axs[r, c].imshow(p, cmap="gray", vmin=0, vmax=1 if c else None)
