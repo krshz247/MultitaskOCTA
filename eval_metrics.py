@@ -5,6 +5,7 @@ from the last batch only), so the comparison runs use this instead.
 """
 import numpy as np
 import torch
+from scipy import ndimage as ndi
 from skimage.morphology import skeletonize
 from sklearn.metrics import accuracy_score, cohen_kappa_score, f1_score, precision_score, recall_score
 
@@ -18,17 +19,26 @@ def _dice_jaccard(p, t):
 
 
 def _cl_dice(p, t):
+    """Returns (clDice, topology precision, topology sensitivity)."""
     sp, st = skeletonize(p), skeletonize(t)
     tprec = (float((sp & t).sum()) + EPS) / (float(sp.sum()) + EPS)
     tsens = (float((st & p).sum()) + EPS) / (float(st.sum()) + EPS)
-    return 2 * tprec * tsens / (tprec + tsens)
+    return 2 * tprec * tsens / (tprec + tsens), tprec, tsens
+
+
+def _components(b):
+    """(number of 8-connected components, number of fragments smaller than 30 px)."""
+    lab, n = ndi.label(b, structure=np.ones((3, 3)))
+    sizes = np.bincount(lab.ravel())[1:]
+    return n, int((sizes < 30).sum())
 
 
 @torch.no_grad()
 def evaluate_loader(model, loader, device):
     """Channels of the segmentation output / target are [FAZ, vessel, background]."""
     model.eval()
-    seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice", "faz_dice_thr", "vessel_dice_thr")}
+    seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice", "faz_dice_thr", "vessel_dice_thr",
+                                     "vessel_topo_prec", "vessel_topo_sens", "vessel_components", "vessel_fragments", "vessel_components_gt")}
     # auxiliary branches: sums of squared error, and of squared deviation from the target's own per-image mean
     # (the error of the best constant prediction), per branch and channel
     aux_sse, aux_const, aux_n = np.zeros((2, 2)), np.zeros((2, 2)), 0
@@ -58,7 +68,14 @@ def evaluate_loader(model, loader, device):
             d, j = _dice_jaccard(preds[b, 1], gts[b, 1])
             seg["vessel_dice"].append(d)
             seg["vessel_jaccard"].append(j)
-            seg["vessel_cldice"].append(_cl_dice(preds[b, 1], gts[b, 1]))
+            cl, tprec, tsens = _cl_dice(preds[b, 1], gts[b, 1])
+            seg["vessel_cldice"].append(cl)
+            seg["vessel_topo_prec"].append(tprec)
+            seg["vessel_topo_sens"].append(tsens)
+            n_p, frag_p = _components(preds[b, 1])
+            seg["vessel_components"].append(n_p)
+            seg["vessel_fragments"].append(frag_p)
+            seg["vessel_components_gt"].append(_components(gts[b, 1])[0])
         y_true.extend(torch.argmax(targets4, dim=2).squeeze(1).tolist())
         y_pred.extend(torch.argmax(clf_outputs, dim=1).cpu().tolist())
     out = {k: float(np.mean(v)) for k, v in seg.items()}

@@ -537,7 +537,7 @@ def main():
             test_gt_names = glob.glob(os.path.join(args.test_path, "*.png"))
             random.shuffle(val_file_names)
 
-        trainLoader, devLoader, testLoader = generate_dataset(train_img_names, val_img_names, test_img_names, args.input_size, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type, train_gt_names, val_gt_names, test_gt_names)
+        trainLoader, devLoader, testLoader = generate_dataset(train_img_names, val_img_names, test_img_names, args.input_size, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type, train_gt_names, val_gt_names, test_gt_names, num_workers=args.num_workers)
 
         epoch_start = 0
         if args.scheduler != "none":
@@ -548,7 +548,7 @@ def main():
         loss_weights = [3, 1, 1]
         logging.info(loss_weights)
         startpoint = args.startpoint
-        LOSS_CFG.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice)
+        LOSS_CFG.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice, cldice_alpha=args.cldice_alpha, vessel_weight=args.vessel_weight)
         history = []
         best_score = -1.0
         tb_writer = SummaryWriter(os.path.join(args.save_path, "tb_fold{}".format(args.fold)))
@@ -597,7 +597,7 @@ def main():
                     json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "history": history}, fh, indent=1)
                 for split in ("val", "test"):
                     for k, v in history[-1][split].items():
-                        tb_writer.add_scalar("{}/{}".format(split, k), v, epoch)
+                        tb_writer.add_scalar("eval/{}/{}".format(split, k), v, epoch)  # per-image metrics
                 save_prediction_figure(model, testLoader.dataset, pred_idx, device, os.path.join(pred_dir, "epoch_{:03d}.png".format(epoch)), tb_writer, "test_predictions", epoch)
                 # best checkpoint = best validation score after the classifier has joined training
                 v = history[-1]["val"]
@@ -611,7 +611,7 @@ def main():
             for tag, d_ in (("train", train_data), ("val", dev_data), ("test", test_data)):
                 for k, v in d_.items():
                     if k != "conf_mat":
-                        tb_writer.add_scalar("{}_epoch/{}".format(tag, k), float(v), epoch)
+                        tb_writer.add_scalar("epoch_avg/{}/{}".format(tag, k), float(v), epoch)  # legacy per-epoch batch averages
 
             best_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_dice_loss_"  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_kappa'], 4)) + ".pt")
             save_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_" + str(epoch)  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_acc'], 4)) + ".pt")
