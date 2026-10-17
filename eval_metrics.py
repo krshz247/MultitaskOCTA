@@ -29,11 +29,21 @@ def evaluate_loader(model, loader, device):
     """Channels of the segmentation output / target are [FAZ, vessel, background]."""
     model.eval()
     seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice")}
+    # auxiliary branches: sums of squared error, and of squared deviation from the target's own per-image mean
+    # (the error of the best constant prediction), per branch and channel
+    aux_sse, aux_const, aux_n = np.zeros((2, 2)), np.zeros((2, 2)), 0
     y_true, y_pred = [], []
-    for inputs, targets1, _, _, targets4 in loader:
+    for inputs, targets1, targets2, targets3, targets4 in loader:
         inputs = inputs.to(torch.float32).to(device)
         seg_outputs = model.module.seg_forward(inputs)
         clf_outputs = model.module.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
+        for branch, (out, tgt) in enumerate(((seg_outputs[1], targets2), (seg_outputs[2], targets3))):
+            out, tgt = out.float().cpu(), tgt.float()
+            for ch in range(2):
+                aux_sse[branch, ch] += float(((out[:, ch] - tgt[:, ch]) ** 2).sum())
+                dev = tgt[:, ch] - tgt[:, ch].mean(dim=(1, 2), keepdim=True)
+                aux_const[branch, ch] += float((dev ** 2).sum())
+        aux_n += inputs.shape[0] * inputs.shape[2] * inputs.shape[3]
         preds = (torch.sigmoid(seg_outputs[0]) > 0.5).cpu().numpy()
         gts = (targets1 > 0.5).numpy()
         for b in range(preds.shape[0]):
@@ -55,4 +65,9 @@ def evaluate_loader(model, loader, device):
         recall_macro=recall_score(y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0),
         kappa=cohen_kappa_score(y_true, y_pred, labels=[0, 1, 2]),
     )
+    for branch, name in enumerate(("heat", "sdm")):
+        for ch, region in enumerate(("faz", "vessel")):
+            out[f"{name}_{region}_mse"] = float(aux_sse[branch, ch] / aux_n)
+            # 1 = perfect, 0 = no better than predicting each image's mean, <0 = worse
+            out[f"{name}_{region}_r2"] = float(1.0 - aux_sse[branch, ch] / max(aux_const[branch, ch], EPS))
     return out

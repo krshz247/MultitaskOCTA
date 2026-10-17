@@ -9,7 +9,7 @@ for f in sorted(glob.glob(f"runs/*/results_fold{fold}.json")):
     best = max(joint, key=score)
     t = best["test"]
     rows.append((os.path.basename(os.path.dirname(f)), best["epoch"], h[-1]["epoch"], t))
-cols = ["faz_dice", "vessel_dice", "vessel_cldice", "acc", "f1_macro", "kappa"]
+cols = ["faz_dice", "vessel_dice", "vessel_cldice", "acc", "f1_macro", "kappa", "heat_faz_r2", "heat_vessel_r2", "sdm_faz_r2", "sdm_vessel_r2"]
 print(f"{'config':26s} ep/last " + " ".join(f"{c:>13s}" for c in cols))
 for name, ep, last, t in rows:
-    print(f"{name:26s} {ep:>3d}/{last:<4d} " + " ".join(f"{t[c]:13.3f}" for c in cols))
+    print(f"{name:26s} {ep:>3d}/{last:<4d} " + " ".join(f"{t.get(c, float("nan")):13.3f}" for c in cols))

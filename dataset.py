@@ -281,7 +281,6 @@ def load_distance(path, distance_type, size):
     if distance_type == "dist_signed11":
         # path = path.replace("mask", "dist_signed11_img").replace("bmp", "mat")
         # dist = io.loadmat(path)["s_dis11"]
-        dist = cv2.imread(path.replace("mask", "dist_signed11_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
 
         faz_dist = cv2.imread(path.replace("gt_full", "gt_faz").replace("mask", "dist_signed11_img").replace("bmp", "png"), cv2.IMREAD_GRAYSCALE)
         faz_dist = cv2.resize(faz_dist, size, interpolation = cv2.INTER_NEAREST)
