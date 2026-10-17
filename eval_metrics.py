@@ -38,7 +38,8 @@ def evaluate_loader(model, loader, device):
     """Channels of the segmentation output / target are [FAZ, vessel, background]."""
     model.eval()
     seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice", "faz_dice_thr", "vessel_dice_thr",
-                                     "vessel_topo_prec", "vessel_topo_sens", "vessel_components", "vessel_fragments", "vessel_components_gt")}
+                                     "vessel_topo_prec", "vessel_topo_sens", "vessel_components", "vessel_fragments", "vessel_components_gt",
+                                     "dice_3ch_micro")}
     # auxiliary branches: sums of squared error, and of squared deviation from the target's own per-image mean
     # (the error of the best constant prediction), per branch and channel
     aux_sse, aux_const, aux_n = np.zeros((2, 2)), np.zeros((2, 2)), 0
@@ -60,6 +61,9 @@ def evaluate_loader(model, loader, device):
         preds = np.stack([cls_map == 0, cls_map == 1, cls_map == 2], axis=1)
         gts = (targets1 > 0.5).numpy()
         for b in range(preds.shape[0]):
+            # the original per-epoch "Dice_Coeff": micro-average over all 3 channels (incl. the large background channel)
+            # of the rounded sigmoid outputs; background-dominated, so it is much higher than the class-wise Dice
+            seg["dice_3ch_micro"].append(_dice_jaccard(preds_thr[b], gts[b])[0])
             seg["faz_dice_thr"].append(_dice_jaccard(preds_thr[b, 0], gts[b, 0])[0])
             seg["vessel_dice_thr"].append(_dice_jaccard(preds_thr[b, 1], gts[b, 1])[0])
             d, j = _dice_jaccard(preds[b, 0], gts[b, 0])
@@ -87,6 +91,9 @@ def evaluate_loader(model, loader, device):
         recall_macro=recall_score(y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0),
         kappa=cohen_kappa_score(y_true, y_pred, labels=[0, 1, 2]),
     )
+    recalls = recall_score(y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0)
+    out.update(recall_normal=float(recalls[0]), recall_dr=float(recalls[1]), recall_amd=float(recalls[2]),
+               balanced_acc=float(np.mean(recalls)))
     for branch, name in enumerate(("heat", "sdm")):
         for ch, region in enumerate(("faz", "vessel")):
             out[f"{name}_{region}_mse"] = float(aux_sse[branch, ch] / aux_n)

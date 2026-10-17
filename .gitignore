@@ -20,3 +20,4 @@ __pycache__/
 .venv-tb/
 /runs_pilot1
 /runs_tb_backup
+/kaggle_upload

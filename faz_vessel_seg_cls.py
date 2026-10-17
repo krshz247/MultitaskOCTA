@@ -60,6 +60,18 @@ def wb_mask(image, pred_mask, true_mask, labels):
         "ground truth" : {"mask_data" : true_mask, "class_labels": labels}})
 
 
+def git_commit():
+    """Short hash of the code that produced a run (+ '-dirty' if there are uncommitted changes)."""
+    import subprocess
+    try:
+        here = os.path.dirname(os.path.abspath(__file__))
+        h = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=here, stderr=subprocess.DEVNULL).decode().strip()
+        dirty = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=here, stderr=subprocess.DEVNULL).decode().strip()
+        return h + ("-dirty" if dirty else "")
+    except Exception:
+        return "unknown"
+
+
 def make_scheduler(optimizer, name, total_steps, peak_lrs, warmup_frac=0.1):
     """Per-iteration schedule whose peak learning rates are the (thesis) LRs given on the command line.
     onecycle: warm-up from peak/25 to the peak, then cosine decay to peak/1e4.
@@ -596,7 +608,7 @@ def main():
             if args.eval_every and (epoch % args.eval_every == 0 or epoch == epoch_start + args.num_epochs):
                 history.append({"epoch": epoch, "val": evaluate_loader(model, devLoader, device), "test": evaluate_loader(model, testLoader, device)})
                 with open(os.path.join(args.save_path, "results_fold{}.json".format(args.fold)), "w") as fh:
-                    json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "history": history}, fh, indent=1)
+                    json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "git_commit": git_commit(), "history": history}, fh, indent=1)
                 for split in ("val", "test"):
                     for k, v in history[-1][split].items():
                         tb_writer.add_scalar("eval/{}/{}".format(split, k), v, epoch)  # per-image metrics
