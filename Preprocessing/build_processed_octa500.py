@@ -103,8 +103,8 @@ def main():
     ap.add_argument("--out", required=True, help="output root, e.g. Datasets/processed_OCTA500/combined")
     ap.add_argument("--projection", default="ILM_OPL", choices=["ILM_OPL", "FULL", "OPL_BM"],
                     help="OCTA en-face projection used as input: ILM_OPL = B5 superficial (thesis), FULL = B4, OPL_BM = B6 deep")
-    ap.add_argument("--vessel", default="large_capillary", choices=["large_capillary", "large"],
-                    help="vessel ground truth: GT_LargeVessel U GT_Capillary, or GT_LargeVessel only")
+    ap.add_argument("--vessel", default="large", choices=["large_capillary", "large"],
+                    help="vessel ground truth: GT_LargeVessel only (default, what the thesis used) or GT_LargeVessel U GT_Capillary (dense)")
     ap.add_argument("--limit", type=int, default=0, help="only process the first N scans (debug)")
     args = ap.parse_args()
 
