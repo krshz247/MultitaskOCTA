@@ -28,6 +28,7 @@ import json
 
 matplotlib.use('Agg')
 
+LOSS_CFG = {}  # set from the command line in main()
 IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
 
 def normalize_2d_array(arr):
@@ -241,7 +242,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         # cldice_coef = np.average(batch_cldice)
 
         # Multi-Segmentation loss
-        multi_criterion = Vessel_FAZ_multiLoss(loss_weights)
+        multi_criterion = Vessel_FAZ_multiLoss(loss_weights, **LOSS_CFG)
         multi_loss, seg_loss, vessel_cldice, faz_dice, background_dice = multi_criterion(seg_outputs[0], seg_outputs[1], seg_outputs[2], targets[0].to(torch.float32), targets[1], targets[2])
         
 
@@ -529,6 +530,7 @@ def main():
         loss_weights = [3, 1, 1]
         logging.info(loss_weights)
         startpoint = args.startpoint
+        LOSS_CFG.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels)
         history = []
         best_score = -1.0
         tb_writer = SummaryWriter(os.path.join(args.save_path, "tb_fold{}".format(args.fold)))

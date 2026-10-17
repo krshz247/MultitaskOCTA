@@ -369,6 +369,9 @@ def create_train_arg_parser():
     parser.add_argument("--classnum", type=int, default=3, help="clf class number.")
     parser.add_argument("--fold", type=int, default=0, help="Fold used as the test set (validation = next fold) when --num_folds > 1.")
     parser.add_argument("--eval_every", type=int, default=0, help="every N epochs write per-image val/test metrics to results_fold<k>.json in save_path (0 = off).")
+    parser.add_argument("--vessel_bce", type=float, default=0.0, help="weight of an extra BCE on the vessel channel (0 = thesis loss).")
+    parser.add_argument("--exclusion", type=float, default=0.0, help="weight of the FAZ/vessel overlap penalty (0 = off).")
+    parser.add_argument("--aux_channels", type=str, default="both", choices=["both", "faz"], help="channels used by the heatmap/SDM auxiliary losses (thesis: both).")
     parser.add_argument("--num_folds", type=int, default=5, help="Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split.")
     parser.add_argument("--augmentation", type=str, default=True, help="using data augmentation.")
     return parser
