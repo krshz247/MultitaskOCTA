@@ -18,3 +18,4 @@ __pycache__/
 /runs
 /runs_resnet50_partial
 .venv-tb/
+/runs_pilot1
