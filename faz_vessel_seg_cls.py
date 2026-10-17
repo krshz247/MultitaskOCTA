@@ -29,6 +29,7 @@ import json
 matplotlib.use('Agg')
 
 LOSS_CFG = {}  # set from the command line in main()
+SCHEDULER = [None]  # per-iteration LR scheduler, set in main() when --scheduler is not 'none'
 IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
 
 def normalize_2d_array(arr):
@@ -57,6 +58,19 @@ def wb_mask(image, pred_mask, true_mask, labels):
     return wandb.Image(image, masks={
         "prediction" : {"mask_data" : pred_mask, "class_labels": labels},
         "ground truth" : {"mask_data" : true_mask, "class_labels": labels}})
+
+
+def make_scheduler(optimizer, name, total_steps, peak_lrs, warmup_frac=0.1):
+    """Per-iteration schedule whose peak learning rates are the (thesis) LRs given on the command line.
+    onecycle: warm-up from peak/25 to the peak, then cosine decay to peak/1e4.
+    cosine:   linear warm-up from peak/100, then cosine decay to 0."""
+    if name == "onecycle":
+        return torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=peak_lrs, total_steps=total_steps, pct_start=warmup_frac,
+                                                   anneal_strategy="cos", div_factor=25.0, final_div_factor=1e4)
+    warm = max(1, int(total_steps * warmup_frac))
+    return torch.optim.lr_scheduler.SequentialLR(optimizer, [
+        torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.01, end_factor=1.0, total_iters=warm),
+        torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, total_steps - warm))], milestones=[warm])
 
 
 def kfold_split(img_names, num_folds, fold, seed=2021):
@@ -277,7 +291,8 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
             # with amp.scale_loss(loss, optimizer) as scaled_loss:
             #     scaled_loss.backward()
             optimizer.step()
-            # scheduler.step()
+            if SCHEDULER[0] is not None:
+                SCHEDULER[0].step()
 
         seg_losses.update(seg_loss.item(), inputs.size(0))
         multi_losses.update(multi_loss.item(), inputs.size(0))
@@ -525,6 +540,9 @@ def main():
         trainLoader, devLoader, testLoader = generate_dataset(train_img_names, val_img_names, test_img_names, args.input_size, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type, train_gt_names, val_gt_names, test_gt_names)
 
         epoch_start = 0
+        if args.scheduler != "none":
+            total_steps = args.num_epochs * len(trainLoader)
+            SCHEDULER[0] = make_scheduler(optimizer, args.scheduler, total_steps, [args.LR_seg, args.LR_clf], args.warmup_frac)
         max_dice = 0.8
         max_acc = 0.6
         loss_weights = [3, 1, 1]
@@ -588,6 +606,8 @@ def main():
                     best_score = score
                     torch.save(model.module.state_dict(), os.path.join(args.save_path, "best_fold{}.pt".format(args.fold)))
                     logging.warning("best validation score %.4f at epoch %d, checkpoint saved", score, epoch)
+            for gi, g in enumerate(optimizer.param_groups):
+                tb_writer.add_scalar("lr/group{}".format(gi), g["lr"], epoch)
             for tag, d_ in (("train", train_data), ("val", dev_data), ("test", test_data)):
                 for k, v in d_.items():
                     if k != "conf_mat":
