@@ -1,0 +1,16 @@
+# Dependencies for Kaggle / Colab notebooks. torch and torchvision are NOT listed: use the CUDA build the notebook ships with.
+# Pins are the ones that matter (see requirements-lock.txt for the full set verified on Apple Silicon).
+segmentation-models-pytorch==0.3.3
+torchmetrics==1.6.3
+scikit-image>=0.22,<0.25
+timm
+albumentations
+kornia
+tensorboardX
+opencv-python-headless
+scikit-learn
+scipy
+matplotlib
+tqdm
+pillow
+wandb

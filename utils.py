@@ -349,6 +349,7 @@ def create_train_arg_parser():
     parser.add_argument("--input_size", type=list, default=[384, 384], help="input image and mask size")
     parser.add_argument("--val_batch_size", type=int, default=4, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=100, help="number of epochs")
+    parser.add_argument("--device", type=str, default="auto", help="auto (cuda > mps > cpu), cuda, mps or cpu.")
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
     parser.add_argument("--use_pretrained", type=bool, default=False, help="Load pretrained checkpoint.")
     parser.add_argument("--pretrained_model_path", type=str, default=None, help="If use_pretrained is true, provide checkpoint.")
