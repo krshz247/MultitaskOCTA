@@ -22,7 +22,7 @@ from sklearn.metrics import cohen_kappa_score
 from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
 from sklearn.metrics import confusion_matrix
 from clDice.cldice_metric.cldice import clDice
-from eval_metrics import evaluate_loader
+from eval_metrics import evaluate_loader, save_prediction_figure
 import json
 
 
@@ -530,6 +530,12 @@ def main():
         logging.info(loss_weights)
         startpoint = args.startpoint
         history = []
+        best_score = -1.0
+        tb_writer = SummaryWriter(os.path.join(args.save_path, "tb_fold{}".format(args.fold)))
+        pred_dir = os.path.join(args.save_path, "preds_fold{}".format(args.fold))
+        os.makedirs(pred_dir, exist_ok=True)
+        n_test = len(testLoader.dataset)
+        pred_idx = sorted({0, n_test // 4, n_test // 2, (3 * n_test) // 4})
 
         for epoch in range(epoch_start + 1, epoch_start + 1 + args.num_epochs):
 
@@ -569,19 +575,25 @@ def main():
                 history.append({"epoch": epoch, "val": evaluate_loader(model, devLoader, device), "test": evaluate_loader(model, testLoader, device)})
                 with open(os.path.join(args.save_path, "results_fold{}.json".format(args.fold)), "w") as fh:
                     json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "history": history}, fh, indent=1)
+                for split in ("val", "test"):
+                    for k, v in history[-1][split].items():
+                        tb_writer.add_scalar("{}/{}".format(split, k), v, epoch)
+                save_prediction_figure(model, testLoader.dataset, pred_idx, device, os.path.join(pred_dir, "epoch_{:03d}.png".format(epoch)), tb_writer, "test_predictions", epoch)
+                # best checkpoint = best validation score after the classifier has joined training
+                v = history[-1]["val"]
+                score = v["faz_dice"] + v["vessel_dice"] + v["vessel_cldice"] + v["f1_macro"]
+                if epoch > startpoint and score > best_score:
+                    best_score = score
+                    torch.save(model.module.state_dict(), os.path.join(args.save_path, "best_fold{}.pt".format(args.fold)))
+                    logging.warning("best validation score %.4f at epoch %d, checkpoint saved", score, epoch)
+            for tag, d_ in (("train", train_data), ("val", dev_data), ("test", test_data)):
+                for k, v in d_.items():
+                    if k != "conf_mat":
+                        tb_writer.add_scalar("{}_epoch/{}".format(tag, k), float(v), epoch)
 
             best_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_dice_loss_"  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_kappa'], 4)) + ".pt")
             save_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_" + str(epoch)  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_acc'], 4)) + ".pt")
 
-            if max_dice <= dev_data['seg_loss']:
-                max_dice = dev_data['seg_loss']
-
-                if torch.cuda.device_count() > 1:
-                    torch.save(model.module.state_dict(), best_name)
-                else:
-                    torch.save(model.state_dict(), best_name)
-                print('Best seg model saved!')
-                logging.warning('Best seg model saved!')
             # if max_acc <= dev_data['cls_acc']:
             #     max_acc = dev_data['cls_acc']
             #     # if epoch > 10:
@@ -600,6 +612,7 @@ def main():
                     torch.save(model.state_dict(), save_name)
                     print('Epoch {} model saved!'.format(epoch))
 
+        tb_writer.close()
         wandb.finish()
 
 if __name__ == "__main__":

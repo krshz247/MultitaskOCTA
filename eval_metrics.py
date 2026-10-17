@@ -71,3 +71,33 @@ def evaluate_loader(model, loader, device):
             # 1 = perfect, 0 = no better than predicting each image's mean, <0 = worse
             out[f"{name}_{region}_r2"] = float(1.0 - aux_sse[branch, ch] / max(aux_const[branch, ch], EPS))
     return out
+
+
+@torch.no_grad()
+def save_prediction_figure(model, dataset, indices, device, path, writer=None, tag="predictions", step=0):
+    """One row per scan: input | ground truth (R=FAZ, G=vessel) | prediction | vessel probability |
+    predicted boundary heatmaps (R=FAZ, G=vessel) | predicted signed-distance maps (R=FAZ, G=vessel)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    model.eval()
+    fig, axs = plt.subplots(len(indices), 6, figsize=(18, 3 * len(indices)), squeeze=False)
+    titles = ["input", "GT (R=FAZ G=vessel)", "prediction", "vessel prob.", "pred. heatmap", "pred. SDM"]
+    for r, i in enumerate(indices):
+        image, mask, _, _, cls = dataset[i]
+        out = model.module.seg_forward(image.unsqueeze(0).float().to(device))
+        prob = torch.sigmoid(out[0])[0].cpu().numpy()
+        rgb = lambda a: np.stack([a[0], a[1], np.zeros_like(a[0])], axis=-1).clip(0, 1)
+        panels = [image[0].numpy(), rgb(np.asarray(mask)), rgb((prob > 0.5).astype(float)), prob[1],
+                  rgb(out[1][0].cpu().numpy()), rgb(out[2][0].cpu().numpy())]
+        for c, p in enumerate(panels):
+            axs[r, c].imshow(p, cmap="gray", vmin=0, vmax=1 if c else None)
+            axs[r, c].axis("off")
+            if r == 0:
+                axs[r, c].set_title(titles[c], fontsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=60)
+    if writer is not None:
+        writer.add_figure(tag, fig, step)
+    plt.close(fig)
