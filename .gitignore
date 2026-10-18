@@ -21,3 +21,4 @@ __pycache__/
 /runs_pilot1
 /runs_tb_backup
 /kaggle_upload
+!kaggle/*.ipynb
