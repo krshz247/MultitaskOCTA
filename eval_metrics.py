@@ -3,6 +3,8 @@
 The metrics logged inside seg_clf_iteration are running averages of batch statistics (vessel Dice and clDice come
 from the last batch only), so the comparison runs use this instead.
 """
+import os
+
 import numpy as np
 import torch
 from scipy import ndimage as ndi
@@ -39,7 +41,7 @@ def evaluate_loader(model, loader, device):
     model.eval()
     seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice", "faz_dice_thr", "vessel_dice_thr",
                                      "vessel_topo_prec", "vessel_topo_sens", "vessel_components", "vessel_fragments", "vessel_components_gt",
-                                     "dice_3ch_micro")}
+                                     "dice_3ch_micro", "jaccard_3ch_micro")}
     # auxiliary branches: sums of squared error, and of squared deviation from the target's own per-image mean
     # (the error of the best constant prediction), per branch and channel
     aux_sse, aux_const, aux_n = np.zeros((2, 2)), np.zeros((2, 2)), 0
@@ -63,7 +65,9 @@ def evaluate_loader(model, loader, device):
         for b in range(preds.shape[0]):
             # the original per-epoch "Dice_Coeff": micro-average over all 3 channels (incl. the large background channel)
             # of the rounded sigmoid outputs; background-dominated, so it is much higher than the class-wise Dice
-            seg["dice_3ch_micro"].append(_dice_jaccard(preds_thr[b], gts[b])[0])
+            d3, j3 = _dice_jaccard(preds_thr[b], gts[b])
+            seg["dice_3ch_micro"].append(d3)
+            seg["jaccard_3ch_micro"].append(j3)
             seg["faz_dice_thr"].append(_dice_jaccard(preds_thr[b, 0], gts[b, 0])[0])
             seg["vessel_dice_thr"].append(_dice_jaccard(preds_thr[b, 1], gts[b, 1])[0])
             d, j = _dice_jaccard(preds[b, 0], gts[b, 0])
@@ -91,6 +95,17 @@ def evaluate_loader(model, loader, device):
         recall_macro=recall_score(y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0),
         kappa=cohen_kappa_score(y_true, y_pred, labels=[0, 1, 2]),
     )
+    names = getattr(loader.dataset, "img_names", None)
+    if names is not None and len(names) >= len(y_true):
+        fov = np.array([os.path.basename(n).split("_")[1] for n in names[:len(y_true)]])
+        yt, yp = np.array(y_true), np.array(y_pred)
+        for f in ("3", "6"):  # per field of view: accuracy and balanced accuracy over the classes present
+            s = fov == f
+            if s.any():
+                out[f"acc_{f}mm"] = float((yt[s] == yp[s]).mean())
+                present = [c for c in (0, 1, 2) if (yt[s] == c).any()]
+                out[f"balanced_acc_{f}mm"] = float(np.mean([(yp[s][yt[s] == c] == c).mean() for c in present]))
+                out[f"n_{f}mm"] = int(s.sum())
     recalls = recall_score(y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0)
     out.update(recall_normal=float(recalls[0]), recall_dr=float(recalls[1]), recall_amd=float(recalls[2]),
                balanced_acc=float(np.mean(recalls)))

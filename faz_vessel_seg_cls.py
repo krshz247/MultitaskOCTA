@@ -85,15 +85,17 @@ def make_scheduler(optimizer, name, total_steps, peak_lrs, warmup_frac=0.1):
         torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, total_steps - warm))], milestones=[warm])
 
 
-def kfold_split(img_names, num_folds, fold, seed=2021):
+def kfold_split(img_names, num_folds, fold, seed=2021, stratify_fov=False):
     """Stratified (by the N/D/M prefix of the file name) k-fold split: fold `fold` is the test set,
-    fold `fold + 1` the validation set and the remaining folds the training set."""
+    fold `fold + 1` the validation set and the remaining folds the training set.
+    stratify_fov=True stratifies by class x field of view (file names are <N|D|M>_<3|6>_<id>)."""
     assert 0 <= fold < num_folds
     rng = random.Random(seed)
     folds = [[] for _ in range(num_folds)]
     by_class = {}
     for name in img_names:
-        by_class.setdefault(os.path.basename(name)[0], []).append(name)
+        key = os.path.basename(name)[:3] if stratify_fov else os.path.basename(name)[0]
+        by_class.setdefault(key, []).append(name)
     offset = 0
     for cls in sorted(by_class):
         names = sorted(by_class[cls])
@@ -322,19 +324,20 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
 
   
     # idx = np.random.randint(3) # picks a random image/prediction/gt from the batch for logging
-    image = inputs.squeeze().cpu().detach().numpy()
+    bi = min(1, inputs.shape[0] - 1)  # index of the sample used for the legacy logging (batch may hold one scan with --full_eval)
+    image = inputs[:, 0].cpu().detach().numpy()
     mask_pred = seg_outputs[0].cpu().detach().numpy()
-    vessel_pred = seg_outputs[0].cpu().detach().numpy()[1, 1, : ,:]
+    vessel_pred = seg_outputs[0].cpu().detach().numpy()[bi, 1, : ,:]
     vessel_pred = normalize_2d_array(vessel_pred)
     vessel_pred = threshold_binary(vessel_pred, 0.6)
     mask_pred = np.argmax(mask_pred, axis=1)
 
     mask_gt = targets1.cpu().detach().numpy()
-    vessel_gt = targets1.cpu().detach().numpy()[1,1, : ,:]
+    vessel_gt = targets1.cpu().detach().numpy()[bi, 1, : ,:]
     mask_gt = np.argmax(mask_gt, axis=1)
 
     labels = {0:"FAZ", 1:"Vessel", 2:"Background"}
-    idx = 1
+    idx = bi
     mask_log = wb_mask(image[idx, :, :], mask_pred[idx, :, :], mask_gt[idx, :, :], labels)
 
     # wandb.log({"vessel img/gt": [wandb.Image(vessel_pred), wandb.Image(vessel_gt)]})
@@ -528,7 +531,7 @@ def main():
                 gt_names.append(name.replace("image_surface", args.gt_path.split("/")[-2] + "/mask"))
 
             if args.num_folds > 1:
-                train_img_names, val_img_names, test_img_names = kfold_split(img_names, args.num_folds, args.fold)
+                train_img_names, val_img_names, test_img_names = kfold_split(img_names, args.num_folds, args.fold, stratify_fov=args.stratify_fov)
                 to_gt = lambda names: [n.replace("image_surface", args.gt_path.split("/")[-2] + "/mask") for n in names]
                 train_gt_names, val_gt_names, test_gt_names = to_gt(train_img_names), to_gt(val_img_names), to_gt(test_img_names)
                 logging.info("fold %d/%d: train %d, val %d, test %d", args.fold, args.num_folds, len(train_img_names), len(val_img_names), len(test_img_names))
@@ -551,7 +554,7 @@ def main():
             test_gt_names = glob.glob(os.path.join(args.test_path, "*.png"))
             random.shuffle(val_file_names)
 
-        trainLoader, devLoader, testLoader = generate_dataset(train_img_names, val_img_names, test_img_names, args.input_size, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type, train_gt_names, val_gt_names, test_gt_names, num_workers=args.num_workers)
+        trainLoader, devLoader, testLoader = generate_dataset(train_img_names, val_img_names, test_img_names, args.input_size, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type, train_gt_names, val_gt_names, test_gt_names, num_workers=args.num_workers, full_eval=args.full_eval)
 
         epoch_start = 0
         if args.scheduler != "none":

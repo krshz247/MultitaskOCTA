@@ -295,7 +295,7 @@ def visualize(device, epoch, model, data_loader, writer, val_batch_size, train=F
             break
 
 
-def generate_dataset(train_img_names, val_img_names, test_img_names, input_size, batch_size, val_batch_size, distance_type, do_clahe, train_type, train_gt_names=None, val_gt_names=None, test_gt_names=None, num_workers=0):
+def generate_dataset(train_img_names, val_img_names, test_img_names, input_size, batch_size, val_batch_size, distance_type, do_clahe, train_type, train_gt_names=None, val_gt_names=None, test_gt_names=None, num_workers=0, full_eval=False):
 
     train_mean, train_std = mean_and_std(train_img_names)
 
@@ -317,8 +317,8 @@ def generate_dataset(train_img_names, val_img_names, test_img_names, input_size,
         test_dataset = DatasetImageClassification(test_img_names, input_size, train_mean, train_std, do_clahe)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers, persistent_workers=num_workers > 0)
-    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, shuffle=False, drop_last=True, num_workers=num_workers, persistent_workers=num_workers > 0)
-    test_loader = DataLoader(test_dataset, batch_size=val_batch_size, shuffle=False, drop_last=True, num_workers=num_workers, persistent_workers=num_workers > 0)
+    valid_loader = DataLoader(valid_dataset, batch_size=val_batch_size, shuffle=False, drop_last=not full_eval, num_workers=num_workers, persistent_workers=num_workers > 0)
+    test_loader = DataLoader(test_dataset, batch_size=val_batch_size, shuffle=False, drop_last=not full_eval, num_workers=num_workers, persistent_workers=num_workers > 0)
 
     return train_loader, valid_loader, test_loader
 
@@ -379,6 +379,8 @@ def create_train_arg_parser():
     parser.add_argument("--num_workers", type=int, default=0, help="DataLoader worker processes (0 = main process).")
     parser.add_argument("--exclusion", type=float, default=0.0, help="weight of the FAZ/vessel overlap penalty (0 = off).")
     parser.add_argument("--aux_channels", type=str, default="both", choices=["both", "faz"], help="channels used by the heatmap/SDM auxiliary losses (thesis: both).")
+    parser.add_argument("--stratify_fov", action="store_true", help="stratify the folds by class x field of view (default: class only, as in the thesis protocol).")
+    parser.add_argument("--full_eval", action="store_true", help="evaluate every validation/test scan (drop_last=False); default keeps the original drop_last=True.")
     parser.add_argument("--num_folds", type=int, default=5, help="Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split.")
     parser.add_argument("--augmentation", type=str, default=True, help="using data augmentation.")
     return parser
