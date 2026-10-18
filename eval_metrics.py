@@ -146,3 +146,23 @@ def save_prediction_figure(model, dataset, indices, device, path, writer=None, t
     if writer is not None:
         writer.add_figure(tag, fig, step)
     plt.close(fig)
+
+
+def classification_metrics(y_true, y_pred, names=None):
+    """Image-level metrics (and per field of view when file names are given); same definitions as evaluate_loader."""
+    yt, yp = np.array(y_true), np.array(y_pred)
+    recalls = recall_score(yt, yp, average=None, labels=[0, 1, 2], zero_division=0)
+    out = dict(n=len(yt), acc=accuracy_score(yt, yp), f1_macro=f1_score(yt, yp, average="macro", labels=[0, 1, 2], zero_division=0),
+               precision_macro=precision_score(yt, yp, average="macro", labels=[0, 1, 2], zero_division=0),
+               recall_macro=float(np.mean(recalls)), kappa=cohen_kappa_score(yt, yp, labels=[0, 1, 2]),
+               recall_normal=float(recalls[0]), recall_dr=float(recalls[1]), recall_amd=float(recalls[2]), balanced_acc=float(np.mean(recalls)))
+    if names is not None:
+        fov = np.array([os.path.basename(n).split("_")[1] for n in names[:len(yt)]])
+        for f in ("3", "6"):
+            s = fov == f
+            if s.any():
+                out[f"acc_{f}mm"] = float((yt[s] == yp[s]).mean())
+                present = [c for c in (0, 1, 2) if (yt[s] == c).any()]
+                out[f"balanced_acc_{f}mm"] = float(np.mean([(yp[s][yt[s] == c] == c).mean() for c in present]))
+                out[f"n_{f}mm"] = int(s.sum())
+    return out

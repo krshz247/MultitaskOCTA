@@ -6,11 +6,12 @@ Usage: python aggregate_folds.py runs/<config> [more run dirs ...]
 import glob, json, os, statistics as st, sys
 
 KEYS = ["faz_dice", "vessel_dice", "vessel_cldice", "dice_3ch_micro", "acc", "balanced_acc", "f1_macro", "kappa",
-        "recall_normal", "recall_dr", "recall_amd", "vessel_topo_sens", "vessel_components"]
+        "recall_normal", "recall_dr", "recall_amd", "acc_3mm", "acc_6mm", "balanced_acc_6mm", "vessel_topo_sens", "vessel_components"]
 
 
 def best_epoch(history, startpoint):
-    score = lambda e: e["val"]["faz_dice"] + e["val"]["vessel_dice"] + e["val"]["vessel_cldice"] + e["val"]["f1_macro"]
+    # joint model: FAZ Dice + vessel Dice + vessel clDice + macro-F1; classification-only baseline: macro-F1
+    score = lambda e: sum(e["val"][k] for k in ("faz_dice", "vessel_dice", "vessel_cldice", "f1_macro") if k in e["val"])
     return max([e for e in history if e["epoch"] > startpoint] or history, key=score)
 
 
