@@ -2,7 +2,7 @@
 # Pins are the ones that matter (see requirements-lock.txt for the full set verified on Apple Silicon).
 segmentation-models-pytorch==0.3.3
 torchmetrics==1.6.3
-scikit-image>=0.22,<0.25
+scikit-image
 timm
 albumentations
 kornia

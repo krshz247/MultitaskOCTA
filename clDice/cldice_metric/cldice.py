@@ -1,4 +1,8 @@
-from skimage.morphology import skeletonize, skeletonize_3d
+try:
+    from skimage.morphology import skeletonize, skeletonize_3d
+except ImportError:  # scikit-image >= 0.25 removed skeletonize_3d; the 2D path used here only needs skeletonize
+    from skimage.morphology import skeletonize
+    skeletonize_3d = skeletonize
 import numpy as np
 
 def cl_score(v, s):
