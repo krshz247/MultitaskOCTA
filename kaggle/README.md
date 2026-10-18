@@ -8,11 +8,11 @@ Kaggle gives about 30 GPU-hours per week for free (T4 x2 or P100), notebooks run
 2. **Datasets:** kaggle.com → Datasets → New Dataset → upload each zip (Kaggle unzips it) → keep them private.
 3. **Notebook:** Code → New Notebook → File → Import notebook → `kaggle/MultitaskOCTA_kaggle.ipynb`.
    Settings: *Accelerator* GPU T4 x2 (or P100), *Internet* On (pip + pretrained weights), then *Add Input* → the two datasets.
-4. **Edit the parameter cell**: `FOLD`, `EPOCHS`, `STARTPOINT`, `EXTRA` (e.g. `["--scheduler", "onecycle"]`), `RUN_NAME`. Run one fold per notebook version, or loop over folds in a copy of the cell.
+4. **Edit the parameter cell**: `FOLDS`, `EPOCHS`, `STARTPOINT`, `SCRIPT`, `FOV_MODE`, `EXTRA` (e.g. `["--scheduler", "onecycle"]`), `RUN_NAME`. Several folds can be trained in one session by listing them in `FOLDS`.
 5. **Save Version → Save & Run All (Commit)**. When it finishes, download `<RUN_NAME>.zip` from the *Output* tab, unzip it into `runs/` and use `aggregate_folds.py`, `plot_runs.py` and TensorBoard as for local runs.
 
 Notes
 * The notebook sets `CUDA_VISIBLE_DEVICES=0`: with two GPUs `DataParallel` would split the batch of 4 and change the BatchNorm statistics.
-* Smoke test: set `LIMIT = 30`, `EPOCHS = 2` (about 2 minutes).
+* Smoke test: set `LIMIT = 30`, `EPOCHS = 2`, `FOLDS = [0]` (about 2 minutes).
 * Output limit is about 20 GB; one run is ≈ 0.5 GB (best checkpoint + figures).
 * Larger batches are possible on a GPU but change the method (`--batch_size 4` is the thesis value).
