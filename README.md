@@ -50,54 +50,53 @@ All numbers below are from 5-fold cross-validation on the OCTA-500 superficial e
 ## Repository structure
 
 ```
-faz_seg_cls.py            # train/eval entry point: FAZ-only segmentation + classification
-faz_vessel_seg_cls.py     # train/eval entry point: joint RV + FAZ segmentation + classification (this work)
-train_seg_clf.py          # shared segmentation+classification training loop
-classification.py         # ResNeSt50 classification-only baseline (no segmentation)
-dataset.py                # OCTA-500 dataloader (RV + FAZ masks, boundary heatmaps, SDMs)
-losses.py                 # Dice / clDice / multi-task loss definitions
-smp_model.py, models.py   # segmentation + classification network definitions
-augmentation.py           # albumentations-based data augmentation pipeline
-Preprocessing/            # pre_dis.m, octaaug.py — boundary heatmap & signed distance map generation
-inference/                # evaluation utilities (Hausdorff distance, boundary loss, etc.)
-clDice/                   # official clDice loss implementation (Shit et al., CVPR 2021)
+faz_vessel_seg_cls.py          train / evaluate the joint RV + FAZ segmentation + classification model (this work), one CV fold per call
+classification_baseline.py     classification-only ResNeSt50 baseline, same protocol (data, folds, loss weights, metrics)
+dataset.py, utils.py           data loading, augmentation (90° rotations + flips), argument parser
+losses.py                      Dice, soft-clDice (VesselClDiceLoss) and the multi-task loss
+smp_model.py                   encoder / three decoders / classifier definitions (segmentation_models_pytorch based)
+eval_metrics.py                per-image Dice, Jaccard, clDice, topology and classification metrics
+aggregate_folds.py             mean ± std over folds at each fold's best-validation epoch
+plot_runs.py, eval_checkpoint.py, rename_tb_tags.py   curves, re-evaluation of a checkpoint, TensorBoard tag conversion
+run_cv.sh, run_sweep.sh        run all folds / compare configurations; sweep_status.sh, summarize_sweep.py
+Preprocessing/build_processed_octa500.py   builds the training data from the raw OCTA-500 release
+analysis/                      FOV / biomarker baseline, vessel post-processing check
+tests/                         unit tests (python -m unittest discover -s tests)
+kaggle/                        notebook + bundle script to train on a Kaggle GPU
+docs/METHOD.md                 thesis → code map, metric definitions, known deviations  (read this first)
+clDice/                        official clDice implementation (MIT)
 ```
 
 ## Setup
 
 ```bash
-pip install -r requirements.txt
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements-lock.txt      # versions verified on Apple Silicon (MPS) and CPU
+# Kaggle / Colab: requirements-kaggle.txt (keeps the platform's CUDA torch), see kaggle/README.md
 ```
 
-Requires the **OCTA-500** dataset (vessel + FAZ pixel-level annotations) — see [Li et al., "IPN-V2 and OCTA-500"](https://ieee-dataport.org/open-access/octa-500) for access (it is not redistributed in this repository due to the dataset's own usage terms). Run `Preprocessing/pre_dis.m` (MATLAB) or `Preprocessing/octaaug.py` to generate boundary heatmaps and signed distance maps from the FAZ masks before training.
-
-This project also depends on the official [clDice](https://github.com/jocpae/clDice) loss implementation (MIT licensed). If it isn't already present under `clDice/`, clone it into the repository root:
+The code selects CUDA, then MPS, then CPU (`--device` overrides). **Data:** download OCTA-500 (see [Li et al., 2024](https://ieee-dataport.org/open-access/octa-500); not redistributed here) and build the training set:
 
 ```bash
-git clone https://github.com/jocpae/clDice
+python Preprocessing/build_processed_octa500.py --octa500 <OCTA500> --out Datasets/processed_OCTA500/ILM_OPL_large \
+       --projection ILM_OPL --vessel large     # B5 input, GT_FAZ + GT_LargeVessel (thesis setup); 364 scans (Normal / DR / AMD)
 ```
 
 ## Usage
 
-Training the joint RV + FAZ model (this work):
-
 ```bash
-python faz_vessel_seg_cls.py \
-  --train_path <path> --val_path <path> --test_path <path> \
-  --model_type unet_smp --train_type multitask --loss_type clDice \
-  --batch_size 4 --num_epochs 100 --startpoint 20 --LR_seg 1e-4 --LR_clf 2e-5 --classnum 3
+D=Datasets/processed_OCTA500/ILM_OPL_large
+# one fold of the joint model with the thesis hyper-parameters (batch 4, LR 1e-4 / 2e-5, startpoint 20, loss weights 3:1:1)
+python faz_vessel_seg_cls.py --img_path $D/image_surface --gt_path $D/gt_full/mask --save_path runs/thesis \
+       --train_type Vessel_FAZ --distance_type dist_signed11 --num_epochs 100 --fold 0 --eval_every 3 --full_eval
+./run_cv.sh ILM_OPL_large 100 20 _thesis --full_eval          # all five folds in turn
+python aggregate_folds.py runs/ILM_OPL_large_thesis           # mean ± std of the test metrics at the best validation epoch
+SCRIPT=classification_baseline.py ./run_cv.sh ILM_OPL_large 100 20 _cls --full_eval   # classification-only arm
 ```
 
-`faz_vessel_seg_cls.py` evaluates with stratified 5-fold cross-validation: run it once per fold with `--fold 0..4` (fold *i* is the test set, fold *i+1* the validation set; `--num_folds 0` restores the old random 70/20/10 split). Training images get random 90° rotations and horizontal/vertical flips. Build the dataset first with `python Preprocessing/build_processed_octa500.py --octa500 <OCTA500> --out Datasets/processed_OCTA500/combined` (default vessel labels: GT_LargeVessel).
+Outputs per run: `results_fold<k>.json` (arguments, git commit, per-image metrics every 3 epochs), `best_fold<k>.pt`, `preds_fold<k>/` (prediction figures), TensorBoard logs (`tensorboard --logdir runs`).
+Optional extensions, **off by default** (see `docs/METHOD.md`): `--scheduler onecycle|cosine`, `--vessel_bce`, `--exclusion`, `--aux_channels faz`, `--cldice_alpha`, `--vessel_weight`, `--stratify_fov`, `--bg_dice 0`.
 
-Training the original FAZ-only BSDA-Net baseline:
-
-```bash
-python faz_seg_cls.py --train_path <path> --val_path <path> --test_path <path> \
-  --model_type unet_smp --train_type cotraining --classnum 3
-```
-
-Key arguments (see `utils.py::create_train_arg_parser` for the full list): `train_path` / `val_path` / `test_path` (dataset splits), `model_type` (`unet_smp`, `unet++`, `deeplabv3+`, ...), `train_type` (`cotraining` / `multitask`), `loss_type`, `LR_seg` / `LR_clf`, `batch_size`, `num_epochs`, `classnum`.
+**Reading the numbers.** Segmentation metrics are reported class-wise (FAZ, vessel) per image on the argmax class map, plus `dice_3ch_micro`, the background-dominated micro-average that the original training loop printed as "Dice_Coeff" and that the thesis' segmentation table most likely reports. Do not compare class-wise values with that table. Known confound: 88 % of AMD scans are 6 mm and 64 % of Normal scans 3 mm; report per-FOV and balanced metrics (`balanced_acc`, `recall_*`, `acc_3mm`, `acc_6mm`).
 
 ## Full thesis
 
