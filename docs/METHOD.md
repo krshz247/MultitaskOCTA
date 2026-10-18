@@ -69,7 +69,9 @@ Split: stratified (by class) 5-fold cross-validation, `kfold_split` in `faz_vess
 | 5-fold cross-validation, mean ± std | `--fold k`, `--num_folds 5`; `aggregate_folds.py` | match (needs 5 runs) |
 | Dice / Jaccard / clDice, Eq. 3.17–3.19 | see §4 | **definition differs**, see §4 |
 
-Optional additions, all **off by default**: `--vessel_bce`, `--exclusion`, `--aux_channels faz`, `--cldice_alpha`, `--vessel_weight`, `--scheduler`.
+Optional additions, all **off by default**: `--vessel_bce`, `--exclusion`, `--aux_channels faz`, `--cldice_alpha`, `--vessel_weight`, `--scheduler`, `--stratify_fov` (folds stratified by class × field of view), `--full_eval` (evaluate every val/test scan instead of dropping the last incomplete batch), `--bg_dice 0` (no background term).
+
+**Classification-only baseline.** The original `classification.py` is *not* the thesis baseline: it trains a torchvision ResNet50 (not ResNeSt50) with an unweighted cross-entropy on a random 70/20 split without test set. `classification_baseline.py` replaces it: same ResNeSt50 backbone and ImageNet weights as the joint model's classifier, same folds, augmentation, class weights, batch size / LR, selection rule (best validation macro-F1) and metrics, so the two arms can be compared fold by fold.
 
 ## 4. Metrics (what the numbers mean)
 
@@ -82,13 +84,15 @@ Per image on the 384 × 384 maps, averaged over images (`eval_metrics.py:evaluat
 | `vessel_topo_prec`, `vessel_topo_sens` | Tprec / Tsens separately; `vessel_components`, `vessel_fragments` (< 30 px) count connectivity breaks |
 | `dice_3ch_micro` | **micro-averaged Dice over all three channels including the background** of the rounded sigmoid outputs; this is the "Dice_Coeff" printed by the original training loop |
 | `acc`, `f1_macro`, `kappa`, `recall_*`, `balanced_acc` | classification on the image level (macro = unweighted over Normal/DR/AMD) |
+| `acc_3mm`, `acc_6mm`, `balanced_acc_*mm` | the same per field of view (the FOV is confounded with the class) |
+| `jaccard_3ch_micro` | Jaccard counterpart of `dice_3ch_micro` |
 | `heat_*`, `sdm_*` `_mse`, `_r2` | auxiliary-branch regression error; R² is relative to predicting each image's mean |
 
 **Why the thesis Dice (98.1 %) and ours differ.** The model of the 100-epoch reference run scores FAZ Dice 0.94 and vessel Dice 0.79 class-wise, but `dice_3ch_micro` = 0.965 — the background channel dominates the micro-average. The thesis table most likely reports that background-dominated quantity (same family of value, 98.1 %). Report both and label them; do not compare class-wise numbers with the thesis table.
 
 ## 5. Known limitations of the current implementation
 
-* Validation/test loaders use `drop_last=True`, so 72 of 73 scans are evaluated per split (to be fixed; keeps comparability of finished runs).
+* Without `--full_eval` the validation/test loaders use `drop_last=True`, so 72 of 73 scans are evaluated per split (finished early runs); all newer cross-validation runs use `--full_eval`.
 * Evaluation at 384 × 384, not at the native resolution of each scan.
 * One fold per invocation; five invocations are needed for the thesis protocol.
 * The thesis does not state σ, heatmap amplitude, clDice parameters, class-weight values or seeds; the values above are recorded here and in each run's `results_fold<k>.json`.
