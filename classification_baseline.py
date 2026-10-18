@@ -19,14 +19,31 @@ from utils import create_train_arg_parser, generate_dataset
 class ResNeStClassifier(nn.Module):
     """Same backbone and ImageNet weights as the classifier of the joint model, plus global pooling and a linear layer."""
 
-    def __init__(self, encoder="timm-resnest50d", pretrain="imagenet", num_classes=3):
+    def __init__(self, encoder="timm-resnest50d", pretrain="imagenet", num_classes=3, dropout=0.0):
         super().__init__()
+        self.drop = nn.Dropout(dropout)
         self.encoder = smp.encoders.get_encoder(encoder, in_channels=1, depth=5, weights=pretrain)
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(self.encoder.out_channels[-1], num_classes)
 
     def forward(self, x):
-        return self.fc(self.pool(self.encoder(x)[-1]).flatten(1))
+        return self.fc(self.drop(self.pool(self.encoder(x)[-1]).flatten(1)))
+
+
+def build_strong_aug():
+    """Extra augmentation for the small, imbalanced data (applied on top of the 90-degree rotations and flips):
+    small random affine, random contrast/brightness, Gaussian noise, random erasing. Works on standardised images."""
+    import kornia.augmentation as K
+    affine = K.RandomAffine(degrees=15, translate=(0.05, 0.05), scale=(0.9, 1.1), p=0.7)
+    erase = K.RandomErasing(scale=(0.02, 0.08), ratio=(0.3, 3.3), value=0.0, p=0.25)
+
+    def aug(x):
+        b = x.shape[0]
+        x = affine(x)
+        x = x * (1 + 0.2 * (torch.rand(b, 1, 1, 1, device=x.device) - 0.5) * 2) + 0.2 * (torch.rand(b, 1, 1, 1, device=x.device) - 0.5) * 2
+        x = x + 0.05 * torch.randn_like(x) * (torch.rand(b, 1, 1, 1, device=x.device) < 0.5)
+        return erase(x)
+    return aug
 
 
 @torch.no_grad()
@@ -51,16 +68,18 @@ def main():
     tr, va, te = kfold_split(names, args.num_folds, args.fold, stratify_fov=args.stratify_fov)
     trainL, devL, testL = generate_dataset(tr, va, te, args.input_size, args.batch_size, args.val_batch_size, "dist_signed11", args.clahe,
                                            "Vessel_FAZ", gt(tr), gt(va), gt(te), num_workers=args.num_workers, full_eval=args.full_eval)
-    model = ResNeStClassifier(args.encoder, args.pretrain if args.pretrain in ("imagenet", "ssl", "swsl") else None).to(device)
-    opt = Adam(model.parameters(), lr=args.LR_clf)
-    crit = nn.CrossEntropyLoss(weight=torch.FloatTensor([0.49, 1.88, 2.35]).to(device))
+    model = ResNeStClassifier(args.encoder, args.pretrain if args.pretrain in ("imagenet", "ssl", "swsl") else None, dropout=args.cls_dropout).to(device)
+    opt = torch.optim.AdamW(model.parameters(), lr=args.LR_clf, weight_decay=args.weight_decay) if args.weight_decay > 0 else Adam(model.parameters(), lr=args.LR_clf)
+    crit = nn.CrossEntropyLoss(weight=torch.FloatTensor([0.49, 1.88, 2.35]).to(device), label_smoothing=args.label_smoothing)
+    strong = build_strong_aug() if args.strong_aug else None
     os.makedirs(args.save_path, exist_ok=True)
     history, best = [], -1.0
     for epoch in range(1, args.num_epochs + 1):
         model.train(); tl, tn, tc = 0.0, 0, 0
         for inputs, _, _, _, cls in trainL:
             t = cls.argmax(2).squeeze(1).to(device)
-            out = model(inputs.float().to(device)); loss = crit(out, t)
+            x = inputs.float().to(device)
+            out = model(strong(x) if strong is not None else x); loss = crit(out, t)
             opt.zero_grad(); loss.backward(); opt.step()
             tl += loss.item() * len(t); tn += len(t); tc += (out.argmax(1) == t).sum().item()
         rec = {"epoch": epoch, "train_loss": tl / tn, "train_acc": tc / tn}

@@ -381,6 +381,10 @@ def create_train_arg_parser():
     parser.add_argument("--aux_channels", type=str, default="both", choices=["both", "faz"], help="channels used by the heatmap/SDM auxiliary losses (thesis: both).")
     parser.add_argument("--stratify_fov", action="store_true", help="stratify the folds by class x field of view (default: class only, as in the thesis protocol).")
     parser.add_argument("--full_eval", action="store_true", help="evaluate every validation/test scan (drop_last=False); default keeps the original drop_last=True.")
+    parser.add_argument("--label_smoothing", type=float, default=0.0, help="classification-only baseline: label smoothing of the cross-entropy.")
+    parser.add_argument("--cls_dropout", type=float, default=0.0, help="classification-only baseline: dropout before the linear layer.")
+    parser.add_argument("--weight_decay", type=float, default=0.0, help="classification-only baseline: > 0 switches Adam to AdamW with this weight decay.")
+    parser.add_argument("--strong_aug", action="store_true", help="classification-only baseline: random affine + intensity + noise + erasing on top of the rotations/flips.")
     parser.add_argument("--num_folds", type=int, default=5, help="Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split.")
     parser.add_argument("--augmentation", type=str, default=True, help="using data augmentation.")
     return parser
