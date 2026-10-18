@@ -105,6 +105,9 @@ def main():
                     help="OCTA en-face projection used as input: ILM_OPL = B5 superficial (thesis), FULL = B4, OPL_BM = B6 deep")
     ap.add_argument("--vessel", default="large", choices=["large_capillary", "large"],
                     help="vessel ground truth: GT_LargeVessel only (default, what the thesis used) or GT_LargeVessel U GT_Capillary (dense)")
+    ap.add_argument("--fov_mode", default="native", choices=["native", "center3mm"],
+                    help="native: scans as released (3 mm and 6 mm); center3mm: the central 3 mm x 3 mm of every 6 mm scan, resized to 304 x 304, "
+                         "so that all scans share one field of view and pixel size (removes the FOV cue, loses the periphery)")
     ap.add_argument("--limit", type=int, default=0, help="only process the first N scans (debug)")
     args = ap.parse_args()
 
@@ -128,9 +131,19 @@ def main():
         img = cv2.imread(os.path.join(args.octa500, f"OCTA_{area}mm", "Projection Maps", f"OCTA({args.projection})", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE)
         faz = cv2.imread(os.path.join(label_dir, "GT_FAZ", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127
         large = cv2.imread(os.path.join(label_dir, "GT_LargeVessel", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127
+        if args.fov_mode == "center3mm" and area == "6":
+            def crop(a, interp):
+                h, w = a.shape[:2]
+                a = a[h // 4:h - h // 4, w // 4:w - w // 4]
+                return cv2.resize(a.astype(np.uint8), (304, 304), interpolation=interp)
+            img = crop(img, cv2.INTER_CUBIC)
+            faz, large = crop(faz, cv2.INTER_NEAREST) > 0, crop(large, cv2.INTER_NEAREST) > 0
         vessel = large
         if args.vessel == "large_capillary":
-            vessel = large | (cv2.imread(os.path.join(label_dir, "GT_Capillary", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127)
+            cap = cv2.imread(os.path.join(label_dir, "GT_Capillary", f"{i}.bmp"), cv2.IMREAD_GRAYSCALE) > 127
+            if args.fov_mode == "center3mm" and area == "6":
+                h, w = cap.shape; cap = cv2.resize(cap[h // 4:h - h // 4, w // 4:w - w // 4].astype(np.uint8), (304, 304), interpolation=cv2.INTER_NEAREST) > 0
+            vessel = large | cap
         # dataset.py builds background = 1 - (faz + vessel); overlapping pixels would make it negative.
         overlap = int((vessel & faz).sum())
         if overlap:
