@@ -5,15 +5,11 @@ import time
 import argparse
 import segmentation_models_pytorch as smp
 from tqdm import tqdm
-from typing import List
-from torch import Tensor, einsum
 from torch.nn import functional as F
 from dataset import DatasetImageMaskContourDist, mean_and_std, DatasetImageFazMaskContourDist, DatasetImageClassification
-from dataset import DatasetCornea, distancedStainingImage
 from losses import LossUNet, LossDCAN, LossDMTN, LossPsiNet
 from models import UNet, UNet_DCAN, UNet_DMTN, PsiNet, UNet_ConvMCD
 from torch.utils.data import DataLoader
-from sklearn.model_selection import KFold, train_test_split
 
 
 class AverageMeter(object):

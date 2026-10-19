@@ -5,8 +5,7 @@ validation-based model selection and the same image-level metrics. Writes result
 Usage: python classification_baseline.py --img_path <D>/image_surface --gt_path <D>/gt_full/mask --save_path runs/cls_baseline \
                                          --fold k --num_epochs 40 [--full_eval]
 """
-import glob, json, os, random, sys
-import numpy as np
+import glob, json, os
 import torch
 from torch import nn
 from torch.optim import Adam

@@ -1,6 +1,6 @@
 """Effect of simple vessel post-processing (remove small fragments / close tiny gaps) on a saved checkpoint.
 Usage: python analysis/postprocess_vessels.py --run runs/<config> --data Datasets/processed_OCTA500/<config> [--fold 0]"""
-import argparse, glob, os, sys, json
+import argparse, glob, os, sys
 import numpy as np, torch
 from scipy import ndimage as ndi
 from torch import nn

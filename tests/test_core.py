@@ -1,5 +1,5 @@
 """Fast sanity tests for the pieces the thesis protocol depends on. Run: python -m unittest discover -s tests -v"""
-import os, sys, unittest, collections, random
+import os, sys, unittest, collections
 import numpy as np, torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Preprocessing"))

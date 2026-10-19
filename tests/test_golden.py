@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(ROOT, "Preprocessing"))
 import build_processed_octa500 as B
 
 KEYS_EXCLUDE = {"epoch"}
+TOL = float(os.environ.get("GOLDEN_TOL", "1e-4"))  # GOLDEN_TOL=1e-9 demands bit-identical results (same machine)
 
 
 def make_dataset(out, n_per=(12, 6, 6), size=384, seed=0):
@@ -73,7 +74,7 @@ class Golden(unittest.TestCase):
             os.makedirs(GOLDEN, exist_ok=True); json.dump(got, open(path, "w"), indent=0, sort_keys=True); self.skipTest("golden file rewritten")
         want = json.load(open(path))
         self.assertEqual(sorted(got), sorted(want), "different set of logged metrics")
-        bad = {k: (got[k], want[k]) for k in want if not np.isclose(got[k], want[k], rtol=1e-4, atol=1e-4)}
+        bad = {k: (got[k], want[k]) for k in want if not np.isclose(got[k], want[k], rtol=TOL, atol=TOL)}
         self.assertFalse(bad, f"{len(bad)} metrics changed, e.g. {dict(list(bad.items())[:5])}")
 
     def test_joint_model(self):
@@ -81,6 +82,9 @@ class Golden(unittest.TestCase):
 
     def test_joint_model_regularised(self):
         self.check("joint_reg", "faz_vessel_seg_cls.py", ["--strong_aug", "--label_smoothing", "0.1", "--cls_dropout", "0.3", "--weight_decay", "0.01", "--scheduler", "onecycle"])
+
+    def test_joint_model_ablation_switches(self):  # stop-gradient on the decoder features, shuffled masks, explicit loss weights
+        self.check("joint_ablation", "faz_vessel_seg_cls.py", ["--detach_clf_features", "--shuffle_masks", "--seg_loss_weights", "2", "1", "1"])
 
     def test_classification_baseline(self):
         self.check("cls", "classification_baseline.py")

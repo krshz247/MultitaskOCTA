@@ -8,18 +8,16 @@ from tqdm import tqdm
 import logging
 from torch import nn
 import random
-import cv2
 import torchmetrics
 from tensorboardX import SummaryWriter
 import wandb
-from utils import create_train_arg_parser, define_loss, generate_dataset
+from utils import create_train_arg_parser, generate_dataset
 from losses import Vessel_FAZ_multiLoss
 import segmentation_models_pytorch as smp
-import torchvision.models as models
 import numpy as np
 import matplotlib
 from sklearn.metrics import cohen_kappa_score
-from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
+from smp_model import my_get_encoder, MyMultibranchModel
 from sklearn.metrics import confusion_matrix
 from clDice.cldice_metric.cldice import clDice
 from eval_metrics import evaluate_loader, save_prediction_figure
@@ -33,7 +31,6 @@ LOSS_CFG = {}  # set from the command line in main()
 DETACH_CLF = [False]  # --detach_clf_features
 STRONG_AUG = [False]  # --strong_aug: affine + intensity + noise applied consistently to image and targets (no erasing)
 SCHEDULER = [None]  # per-iteration LR scheduler, set in main() when --scheduler is not 'none'
-IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
 
 def normalize_2d_array(arr):
     min_val = arr.min()
@@ -112,67 +109,6 @@ def kfold_split(img_names, num_folds, fold, seed=2021, stratify_fov=False):
     return train, val, test
 
 
-def segmentation_iteration(model, optimizer, model_type, criterion, data_loader, device, writer, training=False):
-    running_loss = 0.0
-    total_size = 0
-
-    if training:
-        model.train()
-        torch.set_grad_enabled(True)
-    else:
-        model.eval()
-        torch.set_grad_enabled(False)
-
-    for i, (img_file_name, inputs, targets1, targets2, targets3, targets4) in enumerate(tqdm(data_loader)):
-        inputs = inputs.to(device)
-        targets1, targets2 = targets1.to(device), targets2.to(device)
-        targets3, targets4 = targets3.to(device), targets4.to(device)
-        targets = [targets1, targets2, targets3, targets4]
-
-        if training:
-            optimizer.zero_grad()
-
-        outputs = model(inputs)
-
-        if model_type in IN_MODELS + ["unet"]:
-            if not isinstance(outputs, list):
-                outputs = [outputs]
-            loss = criterion(outputs[0], targets[0])
-            dsc_loss = smp.utils.losses.DiceLoss()
-            # 只写了一个例子
-            # preds = torch.argmax(outputs[0].exp(), dim=1)
-            preds = torch.argmax(torch.sigmoid(outputs[0]), dim=1)
-            dsc = 1 - dsc_loss(preds, targets[0].squeeze(1))
-
-        elif model_type == "dcan":
-            loss = criterion(outputs[0], outputs[1], targets[0], targets[1])
-
-        elif model_type == "dmtn":
-            loss = criterion(outputs[0], outputs[1], targets[0], targets[2])
-
-        elif model_type in ["psinet", "convmcd"]:
-            loss = criterion(
-                outputs[0], outputs[1], outputs[2], targets[0], targets[1], targets[2]
-            )
-        else:
-            raise ValueError('error')
-
-        if training:
-            # with amp.scale_loss(loss, optimizer) as scaled_loss:
-            #     scaled_loss.backward()
-            loss.backward()
-            optimizer.step()
-            # scheduler.step()
-
-        running_loss += loss.item() * inputs.size(0)
-        total_size += inputs.size(0)
-
-    epoch_loss = running_loss / total_size
-    # print("total size:", total_size, training)
-
-    return epoch_loss, dsc
-
-
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self, name, fmt=':f'):
@@ -218,7 +154,6 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
     faz_dice_losses = AverageMeter("faz_dice", ".16f")
     background_dice_losses = AverageMeter("background_dice", ".16f")
 
-    seg_dices = AverageMeter("Dice_loss", ".8f")
     dice_coefs = AverageMeter("Dice_coeff", ".8f")
     seg_jaccards = AverageMeter("Jaccard", ".8f")
     clf_losses = AverageMeter("Loss", ".16f")
@@ -228,10 +163,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
     f1 = torchmetrics.F1Score(task="multiclass", num_classes=3).to(device)
     precision = torchmetrics.Precision(task="multiclass", average='micro', num_classes=3).to(device)
     recall = torchmetrics.Recall(task="multiclass", average='micro', num_classes=3).to(device)
-    cohenkappa = torchmetrics.CohenKappa(task="multiclass", num_classes=3).to(device)
     # confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=3).to(device)
-
-    mask_list = []
 
     if training:
         model.train()
@@ -297,9 +229,9 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         conf_pred = np.concatenate((conf_pred, clf_preds.detach().cpu().numpy()))
 
 
-        f1_score = f1(clf_labels, clf_preds)
-        Percision = precision(clf_labels, clf_preds)
-        Recall = recall(clf_labels, clf_preds)
+        f1(clf_labels, clf_preds)  # update the running metrics, read out with .compute() after the loop
+        precision(clf_labels, clf_preds)
+        recall(clf_labels, clf_preds)
         # conf_matrix = confmat(clf_labels, clf_preds)
 
         if training:
@@ -399,24 +331,6 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
     }
     
     return data, mask_log
-
-
-class CotrainingModel(nn.Module):
-
-    def __init__(self, encoder, pretrain, classnum):
-        super().__init__()
-        self.seg_model = MyUnetModel(
-            encoder_name=encoder, encoder_depth=5, encoder_weights=pretrain, decoder_use_batchnorm=True,
-            decoder_channels=(256, 128, 64, 32, 16), decoder_attention_type=None, in_channels=1, classes=classnum,
-            activation='sigmoid', aux_params=None
-        )
-        self.clf_model = my_get_encoder(encoder, in_channels=1, depth=5, weights=pretrain, num_classes=classnum)
-
-    def seg_forward(self, x):
-        return self.seg_model(x)
-
-    def clf_forward(self, x, decoder_features):
-        return self.clf_model(x, decoder_features)
 
 
 class CotrainingModelMulti(nn.Module):
@@ -577,8 +491,6 @@ def main():
         if args.scheduler != "none":
             total_steps = args.num_epochs * len(trainLoader)
             SCHEDULER[0] = make_scheduler(optimizer, args.scheduler, total_steps, [args.LR_seg, args.LR_clf], args.warmup_frac)
-        max_dice = 0.8
-        max_acc = 0.6
         loss_weights = list(args.seg_loss_weights)  # lambda_1, lambda_2, lambda_3 (thesis: 3 1 1)
         logging.info(loss_weights)
         startpoint = args.startpoint
@@ -618,8 +530,8 @@ def main():
             if args.log_mode:
 
                 wandb.log({"train" : train_seg_log, "epochs": epoch})
-                wandb.log({f"validation" : val_seg_log, "epochs": epoch})
-                wandb.log({f"test" : test_seg_log, "epochs": epoch})
+                wandb.log({"validation" : val_seg_log, "epochs": epoch})
+                wandb.log({"test" : test_seg_log, "epochs": epoch})
 
                 wandb.log({"train": train_data, "epochs": epoch})
                 wandb.log({"val": dev_data, "epochs": epoch})
@@ -647,18 +559,7 @@ def main():
                     if k != "conf_mat":
                         tb_writer.add_scalar("epoch_avg/{}/{}".format(tag, k), float(v), epoch)  # legacy per-epoch batch averages
 
-            best_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_dice_loss_"  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_kappa'], 4)) + ".pt")
             save_name = os.path.join(args.save_path, "fold" + str(args.fold) + "_" + str(epoch)  + "_jaccard_" + str(round(dev_data['seg_jaccard_loss'], 5)) + "_acc_" + str(round(dev_data['cls_acc'], 4)) + "_kap_" + str(round(dev_data['cls_acc'], 4)) + ".pt")
-
-            # if max_acc <= dev_data['cls_acc']:
-            #     max_acc = dev_data['cls_acc']
-            #     # if epoch > 10:
-            #     if torch.cuda.device_count() > 1:
-            #         torch.save(model.module.state_dict(), best_name)
-            #     else:
-            #         torch.save(model.state_dict(), best_name)
-            #     print('Best clf model saved!')
-            #     logging.warning('Best clf model saved!')
 
             if epoch % 50 == 0:
                 if torch.cuda.device_count() > 1:

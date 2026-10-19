@@ -6,7 +6,6 @@ Usage: python analysis/connectivity_vs_class.py --joint runs/ILM_OPL_large_cv40 
 """
 import argparse, glob, os, sys, io, contextlib, json, warnings
 import numpy as np, cv2, torch
-from scipy import ndimage as ndi
 from scipy.stats import kruskal, spearmanr
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score

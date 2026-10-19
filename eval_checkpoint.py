@@ -2,7 +2,7 @@
 
 Usage: python eval_checkpoint.py --run runs/<config> --data Datasets/processed_OCTA500/<config> [--fold 0]
 """
-import argparse, glob, json, os, sys
+import argparse, glob, json, os
 import torch
 from torch import nn
 from faz_vessel_seg_cls import CotrainingModelMulti, kfold_split
