@@ -12,7 +12,8 @@ from torch.optim import Adam
 import segmentation_models_pytorch as smp
 from eval_metrics import classification_metrics
 from faz_vessel_seg_cls import kfold_split, git_commit, set_seed
-from utils import create_train_arg_parser, generate_dataset
+from utils import generate_dataset
+from train_config import parse_config
 
 
 class ResNeStClassifier(nn.Module):
@@ -59,7 +60,7 @@ def predict(model, loader, device):
 
 
 def main():
-    args = create_train_arg_parser().parse_args()
+    args = parse_config()
     set_seed(2021)
     device = torch.device(args.device if args.device != "auto" else "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     names = sorted(glob.glob(os.path.join(args.img_path, "*.bmp")))

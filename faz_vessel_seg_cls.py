@@ -14,7 +14,8 @@ try:  # Weights & Biases is optional (all our runs use WANDB_MODE=disabled); wit
     import wandb
 except ImportError:
     wandb = None
-from utils import create_train_arg_parser, generate_dataset
+from utils import generate_dataset
+from train_config import parse_config
 from losses import Vessel_FAZ_multiLoss
 import segmentation_models_pytorch as smp
 import numpy as np
@@ -368,7 +369,7 @@ def main():
         set_seed(2021)
 
 
-        args = create_train_arg_parser().parse_args()
+        args = parse_config()
         CUDA_SELECT = "cuda:{}".format(args.cuda_no)
         print("cuda_count:", torch.cuda.device_count())
 

@@ -10,8 +10,10 @@ A configuration has four sections (see configs/README.md):
   paths (data_root, raw_octa500, runs_dir), data (builder options), args (every key becomes --key value of the training script).
 The resolved configuration is saved as <run dir>/config.yaml together with the git commit, the dataset is built on demand.
 """
-import argparse, copy, os, subprocess, sys
+import argparse, copy, difflib, os, subprocess, sys
+from dataclasses import fields
 import yaml
+from train_config import TrainConfig
 
 SCRIPTS = {"joint": "faz_vessel_seg_cls.py", "classification": "classification_baseline.py"}
 
@@ -40,6 +42,12 @@ def set_override(cfg, item):
     node[leaf] = yaml.safe_load(value)
 
 
+def validate_args(args):
+    """Options of the 'args' section that the training script does not have, with close matches: [(name, [suggestions])]."""
+    names = [f.name for f in fields(TrainConfig)]
+    return [(k, difflib.get_close_matches(k, names, n=2)) for k in args if k not in names]
+
+
 def cli(args):
     out = []
     for k, v in args.items():
@@ -59,6 +67,9 @@ def main():
     for item in a.set:
         set_override(cfg, item)
     paths, data, args = cfg["paths"], cfg.get("data", {}), dict(cfg.get("args", {}))
+    unknown = validate_args(args)
+    if unknown:
+        sys.exit("unknown option(s) in the 'args' section: " + "; ".join(f"{k}" + (f" (did you mean {', '.join(m)}?)" if m else "") for k, m in unknown))
     folds = a.folds if a.folds is not None and len(a.folds) else list(range(args.get("num_folds", 5)))
     data_name = "{}_{}".format(data.get("projection", "ILM_OPL"), data.get("vessel", "large")) + {"native": "", "center3mm": "_fov3"}[data.get("fov_mode", "native")]
     data_dir = os.path.join(paths["data_root"], data_name)
