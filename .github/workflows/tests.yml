@@ -1,0 +1,47 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU PyTorch and the dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt pyflakes
+      - name: pyflakes (pipeline files)
+        run: |
+          python -m pyflakes aggregate_folds.py augment_gpu.py classification_baseline.py dataset.py eval_checkpoint.py eval_metrics.py \
+            faz_vessel_seg_cls.py losses.py plot_runs.py run_experiment.py utils.py analysis Preprocessing/build_processed_octa500.py tests
+      - name: Fast unit tests
+        env:
+          SKIP_SLOW_TESTS: "1"
+        run: python -m unittest discover -s tests -v
+
+  golden-regression:
+    # Trains tiny models on the CPU and compares every metric with tests/golden/*.json. The golden files were produced on Apple Silicon;
+    # other CPUs / BLAS builds can differ in the last digits, so a failure here is informative but not blocking (tolerance GOLDEN_TOL).
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+      - name: Golden regression tests
+        env:
+          GOLDEN_TOL: "1e-2"
+        run: python -m unittest tests.test_golden -v

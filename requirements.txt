@@ -1,10 +1,20 @@
-tensorboardX
-segmentation_models_pytorch
-kornia
-scipy
+# Dependencies of the current pipeline. Install torch / torchvision for your platform (CPU, CUDA or Apple MPS).
+# The exact versions that were tested on Apple Silicon are in requirements-lock.txt; requirements-kaggle.txt is the variant for notebooks.
+torch
+torchvision
+segmentation-models-pytorch==0.3.3   # newer releases removed CenterBlock, which smp_model.py imports
+torchmetrics==1.6.3                  # torchmetrics.Dice was removed from the top-level namespace in 1.8
+timm
+kornia                               # strong augmentation of the classification-only baseline
+scikit-image
 scikit-learn
-wandb
-protobuf==3.20.*
-albumentations
+scipy
+numpy
+opencv-python-headless
 matplotlib
-torchmetrics
+tensorboardX
+tqdm
+pyyaml                               # run_experiment.py
+
+# optional
+# wandb                              # Weights & Biases logging; the training script runs without it
