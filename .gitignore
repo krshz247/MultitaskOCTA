@@ -22,3 +22,6 @@ __pycache__/
 /runs_tb_backup
 /kaggle_upload
 !kaggle/*.ipynb
+
+# golden regression files must be tracked
+!tests/golden/*.json
