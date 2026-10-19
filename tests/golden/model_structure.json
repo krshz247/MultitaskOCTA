@@ -1,0 +1,72 @@
+{
+ "res2net": {
+  "cls_out": [
+   1,
+   3
+  ],
+  "hash": "9622d299419628f2c9a50e36b4d90a42",
+  "n_tensors": 1214,
+  "seg_out": [
+   1,
+   3,
+   64,
+   64
+  ]
+ },
+ "resnest": {
+  "cls_out": [
+   1,
+   3
+  ],
+  "hash": "4a0b99f30b274a2fc101c355e84d57c3",
+  "n_tensors": 1142,
+  "seg_out": [
+   1,
+   3,
+   64,
+   64
+  ]
+ },
+ "resnet": {
+  "cls_out": [
+   1,
+   3
+  ],
+  "hash": "06f55e8d0ebf38407a1a2bd08030e0e2",
+  "n_tensors": 830,
+  "seg_out": [
+   1,
+   3,
+   64,
+   64
+  ]
+ },
+ "sknet": {
+  "cls_out": [
+   1,
+   3
+  ],
+  "hash": "1f4c19f640ce29a7091738fc9ea6c982",
+  "n_tensors": 642,
+  "seg_out": [
+   1,
+   3,
+   64,
+   64
+  ]
+ },
+ "vgg": {
+  "cls_out": [
+   1,
+   3
+  ],
+  "hash": "31a7034aeb4fa2f137f5ceec5ad3edce",
+  "n_tensors": 266,
+  "seg_out": [
+   1,
+   3,
+   64,
+   64
+  ]
+ }
+}
