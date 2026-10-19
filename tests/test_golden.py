@@ -43,9 +43,12 @@ def make_dataset(out, n_per=(12, 6, 6), size=384, seed=0):
             i += 1
 
 
-def run(script, data, save, extra=()):
+def run(script, data, save, extra=(), block=()):
     os.makedirs(os.path.join(save, "summary"), exist_ok=True)
-    cmd = [sys.executable, script, "--img_path", os.path.join(data, "image_surface"), "--gt_path", os.path.join(data, "gt_full", "mask"), "--save_path", save,
+    launcher = [sys.executable, script]
+    if block:  # run the script with some modules made un-importable (to test optional dependencies)
+        launcher = [sys.executable, "-c", f"import sys, runpy; [sys.modules.__setitem__(m, None) for m in {list(block)!r}]; sys.argv = [{script!r}] + sys.argv[1:]; runpy.run_path({script!r}, run_name='__main__')"]
+    cmd = launcher + ["--img_path", os.path.join(data, "image_surface"), "--gt_path", os.path.join(data, "gt_full", "mask"), "--save_path", save,
            "--train_type", "Vessel_FAZ", "--distance_type", "dist_signed11", "--device", "cpu", "--pretrain", "none", "--num_epochs", "2", "--startpoint", "1",
            "--eval_every", "1", "--full_eval", "--num_folds", "3", "--fold", "0", "--batch_size", "4", "--val_batch_size", "4"] + list(extra)
     r = subprocess.run(cmd, cwd=ROOT, env=dict(os.environ, WANDB_MODE="disabled", PYTHONWARNINGS="ignore"), capture_output=True, text=True)
@@ -68,8 +71,8 @@ class Golden(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def check(self, name, script, extra=()):
-        got = flatten(run(script, self.data, os.path.join(self.tmp, name), extra)); path = os.path.join(GOLDEN, name + ".json")
+    def check(self, name, script, extra=(), block=(), golden=None):
+        got = flatten(run(script, self.data, os.path.join(self.tmp, name), extra, block)); path = os.path.join(GOLDEN, (golden or name) + ".json")
         if os.environ.get("UPDATE_GOLDEN"):
             os.makedirs(GOLDEN, exist_ok=True); json.dump(got, open(path, "w"), indent=0, sort_keys=True); self.skipTest("golden file rewritten")
         want = json.load(open(path))
@@ -85,6 +88,9 @@ class Golden(unittest.TestCase):
 
     def test_joint_model_ablation_switches(self):  # stop-gradient on the decoder features, shuffled masks, explicit loss weights
         self.check("joint_ablation", "faz_vessel_seg_cls.py", ["--detach_clf_features", "--shuffle_masks", "--seg_loss_weights", "2", "1", "1"])
+
+    def test_joint_model_without_wandb(self):  # wandb is an optional dependency: same numbers when it is not installed
+        self.check("joint_nowandb", "faz_vessel_seg_cls.py", block=["wandb"], golden="joint")
 
     def test_classification_baseline(self):
         self.check("cls", "classification_baseline.py")

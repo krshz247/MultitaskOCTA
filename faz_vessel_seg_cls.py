@@ -10,7 +10,10 @@ from torch import nn
 import random
 import torchmetrics
 from tensorboardX import SummaryWriter
-import wandb
+try:  # Weights & Biases is optional (all our runs use WANDB_MODE=disabled); without it the logging calls are skipped
+    import wandb
+except ImportError:
+    wandb = None
 from utils import create_train_arg_parser, generate_dataset
 from losses import Vessel_FAZ_multiLoss
 import segmentation_models_pytorch as smp
@@ -19,6 +22,8 @@ import matplotlib
 from sklearn.metrics import cohen_kappa_score
 from smp_model import my_get_encoder, MyMultibranchModel
 from sklearn.metrics import confusion_matrix
+from dataclasses import dataclass, field
+from typing import Any
 from clDice.cldice_metric.cldice import clDice
 from eval_metrics import evaluate_loader, save_prediction_figure
 from augment_gpu import joint_augment
@@ -27,10 +32,14 @@ import json
 
 matplotlib.use('Agg')
 
-LOSS_CFG = {}  # set from the command line in main()
-DETACH_CLF = [False]  # --detach_clf_features
-STRONG_AUG = [False]  # --strong_aug: affine + intensity + noise applied consistently to image and targets (no erasing)
-SCHEDULER = [None]  # per-iteration LR scheduler, set in main() when --scheduler is not 'none'
+@dataclass
+class TrainSettings:
+    """Run-wide switches handed to seg_clf_iteration (replaces the former module-level globals)."""
+    loss_cfg: dict = field(default_factory=dict)  # keyword arguments of Vessel_FAZ_multiLoss
+    detach_clf: bool = False                      # --detach_clf_features: stop-gradient on the decoder features fed to the classifier
+    strong_aug: bool = False                      # --strong_aug: affine + intensity + noise applied consistently to image and targets (no erasing)
+    scheduler: Any = None                         # per-iteration LR scheduler, set in main() when --scheduler is not 'none'
+
 
 def normalize_2d_array(arr):
     min_val = arr.min()
@@ -133,7 +142,7 @@ class AverageMeter(object):
         return fmtstr.format(**self.__dict__)
 
 
-def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, loss_weights, startpoint, batch_size, training=False, test=False):
+def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, loss_weights, startpoint, batch_size, settings, training=False, test=False):
 
 
     stage = ''
@@ -179,7 +188,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         inputs = inputs.to(torch.float32).to(device)
         targets1, targets2 = targets1.to(torch.float32).to(device), targets2.to(torch.float32).to(device)
         targets3, targets4 = targets3.to(torch.float32).to(device), targets4.to(device)
-        if training and STRONG_AUG[0]:
+        if training and settings.strong_aug:
             inputs, targets1, targets2, targets3 = joint_augment(inputs, targets1, targets2, targets3)
         targets = [targets1, targets2, targets3, targets4]
 
@@ -192,7 +201,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
 
         seg_preds = torch.round(torch.sigmoid(seg_outputs[0]))  # seg head outputs logits
         clf_feats = seg_outputs[3:6]
-        if DETACH_CLF[0]:  # --detach_clf_features: the classifier sees the decoder features but its loss does not train the segmentation network
+        if settings.detach_clf:  # --detach_clf_features: the classifier sees the decoder features but its loss does not train the segmentation network
             clf_feats = [[f.detach() for f in fs] for fs in clf_feats]
         clf_outputs = model.module.clf_forward(inputs, *clf_feats)
 
@@ -210,7 +219,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         # cldice_coef = np.average(batch_cldice)
 
         # Multi-Segmentation loss
-        multi_criterion = Vessel_FAZ_multiLoss(loss_weights, **LOSS_CFG)
+        multi_criterion = Vessel_FAZ_multiLoss(loss_weights, **settings.loss_cfg)
         multi_loss, seg_loss, vessel_cldice, faz_dice, background_dice = multi_criterion(seg_outputs[0], seg_outputs[1], seg_outputs[2], targets[0].to(torch.float32), targets[1], targets[2])
         
 
@@ -245,8 +254,8 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
             # with amp.scale_loss(loss, optimizer) as scaled_loss:
             #     scaled_loss.backward()
             optimizer.step()
-            if SCHEDULER[0] is not None:
-                SCHEDULER[0].step()
+            if settings.scheduler is not None:
+                settings.scheduler.step()
 
         seg_losses.update(seg_loss.item(), inputs.size(0))
         multi_losses.update(multi_loss.item(), inputs.size(0))
@@ -278,7 +287,7 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
 
     labels = {0:"FAZ", 1:"Vessel", 2:"Background"}
     idx = bi
-    mask_log = wb_mask(image[idx, :, :], mask_pred[idx, :, :], mask_gt[idx, :, :], labels)
+    mask_log = wb_mask(image[idx, :, :], mask_pred[idx, :, :], mask_gt[idx, :, :], labels) if wandb is not None else None
 
     # wandb.log({"vessel img/gt": [wandb.Image(vessel_pred), wandb.Image(vessel_gt)]})
                 
@@ -306,9 +315,10 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
 
     conf_mat = confusion_matrix(conf_gt, conf_pred)
     print(conf_mat)
-    wandb.log({"conf_mat_" +  stage : wandb.plot.confusion_matrix(probs=None,
-                        y_true=conf_gt, preds=conf_pred,
-                        class_names=["Normal", "DR", "AMD"])})
+    if wandb is not None and wandb.run is not None:
+        wandb.log({"conf_mat_" +  stage : wandb.plot.confusion_matrix(probs=None,
+                            y_true=conf_gt, preds=conf_pred,
+                            class_names=["Normal", "DR", "AMD"])})
 
 
     data = {
@@ -384,7 +394,7 @@ def main():
             device = torch.device("cpu")
 
         # logging in Wandb
-        if args.log_mode:
+        if args.log_mode and wandb is not None:
             wandb.init(
             project="BSDA-Net",
             dir = args.save_path,
@@ -426,8 +436,7 @@ def main():
         model.to(device)
         logging.info(model)
 
-        STRONG_AUG[0] = args.strong_aug
-        DETACH_CLF[0] = args.detach_clf_features
+        settings = TrainSettings(detach_clf=args.detach_clf_features, strong_aug=args.strong_aug)
         if args.cls_dropout > 0:  # dropout on the pooled features before the classifier's linear layer (no new parameters)
             model.module.clf_model.my_fc.register_forward_pre_hook(lambda m, inp: (torch.nn.functional.dropout(inp[0], args.cls_dropout, m.training),))
 
@@ -490,11 +499,11 @@ def main():
         epoch_start = 0
         if args.scheduler != "none":
             total_steps = args.num_epochs * len(trainLoader)
-            SCHEDULER[0] = make_scheduler(optimizer, args.scheduler, total_steps, [args.LR_seg, args.LR_clf], args.warmup_frac)
+            settings.scheduler = make_scheduler(optimizer, args.scheduler, total_steps, [args.LR_seg, args.LR_clf], args.warmup_frac)
         loss_weights = list(args.seg_loss_weights)  # lambda_1, lambda_2, lambda_3 (thesis: 3 1 1)
         logging.info(loss_weights)
         startpoint = args.startpoint
-        LOSS_CFG.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice, cldice_alpha=args.cldice_alpha, vessel_weight=args.vessel_weight)
+        settings.loss_cfg.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice, cldice_alpha=args.cldice_alpha, vessel_weight=args.vessel_weight)
         history = []
         best_score = -1.0
         tb_writer = SummaryWriter(os.path.join(args.save_path, "tb_fold{}".format(args.fold)))
@@ -511,9 +520,9 @@ def main():
                     params.requires_grad = True
 
             print('\nEpoch: {}'.format(epoch))
-            train_data , train_seg_log = seg_clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, loss_weights, startpoint, args.batch_size, training=True)
-            dev_data, val_seg_log = seg_clf_iteration(epoch, model, optimizer, criterion, devLoader, device, loss_weights, startpoint, args.val_batch_size, training=False)
-            test_data, test_seg_log = seg_clf_iteration(epoch, model, optimizer, criterion, testLoader, device, loss_weights, startpoint, args.val_batch_size, training=False, test=True)
+            train_data , train_seg_log = seg_clf_iteration(epoch, model, optimizer, criterion, trainLoader, device, loss_weights, startpoint, args.batch_size, settings, training=True)
+            dev_data, val_seg_log = seg_clf_iteration(epoch, model, optimizer, criterion, devLoader, device, loss_weights, startpoint, args.val_batch_size, settings, training=False)
+            test_data, test_seg_log = seg_clf_iteration(epoch, model, optimizer, criterion, testLoader, device, loss_weights, startpoint, args.val_batch_size, settings, training=False, test=True)
             
             
             epoch_info = "Epoch: {}".format(epoch)
@@ -527,7 +536,7 @@ def main():
             logging.info(train_info)
             logging.info(val_info)
             
-            if args.log_mode:
+            if args.log_mode and wandb is not None:
 
                 wandb.log({"train" : train_seg_log, "epochs": epoch})
                 wandb.log({"validation" : val_seg_log, "epochs": epoch})
@@ -570,7 +579,8 @@ def main():
                     print('Epoch {} model saved!'.format(epoch))
 
         tb_writer.close()
-        wandb.finish()
+        if wandb is not None and wandb.run is not None:
+            wandb.finish()
 
 if __name__ == "__main__":
     main()
