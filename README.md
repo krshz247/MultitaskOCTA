@@ -134,6 +134,15 @@ Optional extensions, **off by default** (see `docs/METHOD.md`): `--scheduler one
 
 **Reading the numbers.** Segmentation metrics are reported class-wise (FAZ, vessel) per image on the argmax class map, plus `dice_3ch_micro`, the background-dominated micro-average that the original training loop printed as "Dice_Coeff" and that the thesis' segmentation table most likely reports. Do not compare class-wise values with that table. Known confound: 88 % of AMD scans are 6 mm and 64 % of Normal scans 3 mm; report per-FOV and balanced metrics (`balanced_acc`, `recall_*`, `acc_3mm`, `acc_6mm`).
 
+## Tests
+
+```bash
+python -m unittest discover -s tests            # 18 tests: fast unit tests + golden regression (about 4 minutes on a CPU)
+SKIP_SLOW_TESTS=1 python -m unittest discover -s tests   # unit tests only (seconds)
+python tests/verify_checkpoints.py              # re-evaluates stored checkpoints (needs the local runs/ and Datasets/)
+```
+`tests/test_golden.py` trains tiny models for 2 epochs on a synthetic data set and compares every metric with `tests/golden/*.json`; on one machine the result is bit-for-bit reproducible, so any change of behaviour is detected (`GOLDEN_TOL=1e-9`). A GitHub Actions workflow (`.github/workflows/tests.yml`) runs pyflakes and the unit tests.
+
 ## Full thesis
 
 **"OCTA-based Foveal Avascular Zone (FAZ) and Retinal Vasculature Segmentation and Disease Identification"** — Kourosh Zargari, TUM, October 2023.
