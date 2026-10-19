@@ -1,0 +1,712 @@
+{
+ "train_path": {
+  "flags": [
+   "--train_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "path to training img jpg files"
+ },
+ "val_path": {
+  "flags": [
+   "--val_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "path to validation img jpg files"
+ },
+ "test_path": {
+  "flags": [
+   "--test_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "path to test img jpg files"
+ },
+ "img_path": {
+  "flags": [
+   "--img_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "path to img bmp files"
+ },
+ "gt_path": {
+  "flags": [
+   "--gt_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "path to ground truth bmp files"
+ },
+ "train_percentage": {
+  "flags": [
+   "--train_percentage"
+  ],
+  "default": 0.7,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "percentage of the files in the dataset used for training"
+ },
+ "val_percentage": {
+  "flags": [
+   "--val_percentage"
+  ],
+  "default": 0.2,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "percentage of the files in the dataset used for validation"
+ },
+ "test_percentage": {
+  "flags": [
+   "--test_percentage"
+  ],
+  "default": 0.1,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "percentage of the files in the dataset used for test"
+ },
+ "train_type": {
+  "flags": [
+   "--train_type"
+  ],
+  "default": "cotraining",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Select training type, including single classification, segmentation, cotraining and multitask. "
+ },
+ "model_type": {
+  "flags": [
+   "--model_type"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "select model type: unet,dcan,dmtn,psinet,convmcd"
+ },
+ "log_mode": {
+  "flags": [
+   "--log_mode"
+  ],
+  "default": true,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "logging in wandb"
+ },
+ "object_type": {
+  "flags": [
+   "--object_type"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Dataset."
+ },
+ "distance_type": {
+  "flags": [
+   "--distance_type"
+  ],
+  "default": "dist_mask",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "select distance transform type - dist_mask,dist_contour,dist_signed"
+ },
+ "batch_size": {
+  "flags": [
+   "--batch_size"
+  ],
+  "default": 4,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "train batch size"
+ },
+ "input_size": {
+  "flags": [
+   "--input_size"
+  ],
+  "default": [
+   384,
+   384
+  ],
+  "type": "list",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "input image and mask size"
+ },
+ "val_batch_size": {
+  "flags": [
+   "--val_batch_size"
+  ],
+  "default": 4,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "validation batch size"
+ },
+ "num_epochs": {
+  "flags": [
+   "--num_epochs"
+  ],
+  "default": 100,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "number of epochs"
+ },
+ "device": {
+  "flags": [
+   "--device"
+  ],
+  "default": "auto",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "auto (cuda > mps > cpu), cuda, mps or cpu."
+ },
+ "cuda_no": {
+  "flags": [
+   "--cuda_no"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "cuda number"
+ },
+ "use_pretrained": {
+  "flags": [
+   "--use_pretrained"
+  ],
+  "default": false,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Load pretrained checkpoint."
+ },
+ "pretrained_model_path": {
+  "flags": [
+   "--pretrained_model_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "If use_pretrained is true, provide checkpoint."
+ },
+ "save_path": {
+  "flags": [
+   "--save_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Model save path."
+ },
+ "wandb_path": {
+  "flags": [
+   "--wandb_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "wandb log path."
+ },
+ "encoder": {
+  "flags": [
+   "--encoder"
+  ],
+  "default": "timm-resnest50d",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "encoder (thesis: ResNeSt50 = timm-resnest50d)."
+ },
+ "pretrain": {
+  "flags": [
+   "--pretrain"
+  ],
+  "default": "imagenet",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "choose pretrain."
+ },
+ "loss_type": {
+  "flags": [
+   "--loss_type"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "loss type."
+ },
+ "local_rank": {
+  "flags": [
+   "--local_rank"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "node rank for distributed training"
+ },
+ "LR_seg": {
+  "flags": [
+   "--LR_seg"
+  ],
+  "default": 0.0001,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "learning rate."
+ },
+ "LR_clf": {
+  "flags": [
+   "--LR_clf"
+  ],
+  "default": 2e-05,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "learning rate."
+ },
+ "use_scheduler": {
+  "flags": [
+   "--use_scheduler"
+  ],
+  "default": false,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "unused, see --scheduler."
+ },
+ "scheduler": {
+  "flags": [
+   "--scheduler"
+  ],
+  "default": "none",
+  "type": "str",
+  "nargs": null,
+  "choices": [
+   "none",
+   "onecycle",
+   "cosine"
+  ],
+  "const": null,
+  "action": "_StoreAction",
+  "help": "per-iteration LR schedule (thesis: none = constant LR)."
+ },
+ "warmup_frac": {
+  "flags": [
+   "--warmup_frac"
+  ],
+  "default": 0.1,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "fraction of all steps used for LR warm-up."
+ },
+ "aux": {
+  "flags": [
+   "--aux"
+  ],
+  "default": false,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "choose to do classification"
+ },
+ "attention": {
+  "flags": [
+   "--attention"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "decoder_attention_type."
+ },
+ "usenorm": {
+  "flags": [
+   "--usenorm"
+  ],
+  "default": true,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "encoder use bn"
+ },
+ "startpoint": {
+  "flags": [
+   "--startpoint"
+  ],
+  "default": 20,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "start cotraining point."
+ },
+ "clahe": {
+  "flags": [
+   "--clahe"
+  ],
+  "default": false,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "do clahe."
+ },
+ "classnum": {
+  "flags": [
+   "--classnum"
+  ],
+  "default": 3,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "clf class number."
+ },
+ "fold": {
+  "flags": [
+   "--fold"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Fold used as the test set (validation = next fold) when --num_folds > 1."
+ },
+ "eval_every": {
+  "flags": [
+   "--eval_every"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "every N epochs write per-image val/test metrics to results_fold<k>.json in save_path (0 = off)."
+ },
+ "vessel_bce": {
+  "flags": [
+   "--vessel_bce"
+  ],
+  "default": 0.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "weight of an extra BCE on the vessel channel (0 = thesis loss)."
+ },
+ "bg_dice": {
+  "flags": [
+   "--bg_dice"
+  ],
+  "default": 1.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "weight of the background-channel Dice term in the segmentation loss (the 3-channel head is [FAZ, vessel, background])."
+ },
+ "cldice_alpha": {
+  "flags": [
+   "--cldice_alpha"
+  ],
+  "default": 0.5,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "share of soft clDice in the vessel term (1 - alpha is Dice); thesis/original: 0.5."
+ },
+ "vessel_weight": {
+  "flags": [
+   "--vessel_weight"
+  ],
+  "default": 1.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "weight of the vessel (Dice + clDice) term in the segmentation loss."
+ },
+ "num_workers": {
+  "flags": [
+   "--num_workers"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "DataLoader worker processes (0 = main process)."
+ },
+ "exclusion": {
+  "flags": [
+   "--exclusion"
+  ],
+  "default": 0.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "weight of the FAZ/vessel overlap penalty (0 = off)."
+ },
+ "aux_channels": {
+  "flags": [
+   "--aux_channels"
+  ],
+  "default": "both",
+  "type": "str",
+  "nargs": null,
+  "choices": [
+   "both",
+   "faz"
+  ],
+  "const": null,
+  "action": "_StoreAction",
+  "help": "channels used by the heatmap/SDM auxiliary losses (thesis: both)."
+ },
+ "stratify_fov": {
+  "flags": [
+   "--stratify_fov"
+  ],
+  "default": false,
+  "type": null,
+  "nargs": 0,
+  "choices": null,
+  "const": true,
+  "action": "_StoreTrueAction",
+  "help": "stratify the folds by class x field of view (default: class only, as in the thesis protocol)."
+ },
+ "full_eval": {
+  "flags": [
+   "--full_eval"
+  ],
+  "default": false,
+  "type": null,
+  "nargs": 0,
+  "choices": null,
+  "const": true,
+  "action": "_StoreTrueAction",
+  "help": "evaluate every validation/test scan (drop_last=False); default keeps the original drop_last=True."
+ },
+ "label_smoothing": {
+  "flags": [
+   "--label_smoothing"
+  ],
+  "default": 0.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "classification-only baseline: label smoothing of the cross-entropy."
+ },
+ "cls_dropout": {
+  "flags": [
+   "--cls_dropout"
+  ],
+  "default": 0.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "classification-only baseline: dropout before the linear layer."
+ },
+ "weight_decay": {
+  "flags": [
+   "--weight_decay"
+  ],
+  "default": 0.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "classification-only baseline: > 0 switches Adam to AdamW with this weight decay."
+ },
+ "strong_aug": {
+  "flags": [
+   "--strong_aug"
+  ],
+  "default": false,
+  "type": null,
+  "nargs": 0,
+  "choices": null,
+  "const": true,
+  "action": "_StoreTrueAction",
+  "help": "classification-only baseline: random affine + intensity + noise + erasing on top of the rotations/flips."
+ },
+ "seg_loss_weights": {
+  "flags": [
+   "--seg_loss_weights"
+  ],
+  "default": [
+   3.0,
+   1.0,
+   1.0
+  ],
+  "type": "float",
+  "nargs": 3,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "lambda_1 (segmentation), lambda_2 (boundary heatmap), lambda_3 (SDM); thesis 3 1 1. 0 0 0 trains the segmentation network without any segmentation supervision."
+ },
+ "detach_clf_features": {
+  "flags": [
+   "--detach_clf_features"
+  ],
+  "default": false,
+  "type": null,
+  "nargs": 0,
+  "choices": null,
+  "const": true,
+  "action": "_StoreTrueAction",
+  "help": "ablation: stop-gradient on the decoder features fed to the classifier."
+ },
+ "shuffle_masks": {
+  "flags": [
+   "--shuffle_masks"
+  ],
+  "default": false,
+  "type": null,
+  "nargs": 0,
+  "choices": null,
+  "const": true,
+  "action": "_StoreTrueAction",
+  "help": "control: give every training image the masks of a different training scan."
+ },
+ "num_folds": {
+  "flags": [
+   "--num_folds"
+  ],
+  "default": 5,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split."
+ },
+ "augmentation": {
+  "flags": [
+   "--augmentation"
+  ],
+  "default": true,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "using data augmentation."
+ }
+}
