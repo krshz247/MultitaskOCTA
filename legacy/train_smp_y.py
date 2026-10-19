@@ -7,7 +7,8 @@ import glob
 import segmentation_models_pytorch as smp
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
-from utils import create_train_arg_parser, build_model, define_loss, AverageMeter, generate_dataset
+from utils import create_train_arg_parser, generate_dataset
+from legacy_utils import build_model, define_loss, AverageMeter
 from sklearn.metrics import cohen_kappa_score
 
 

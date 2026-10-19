@@ -10,7 +10,8 @@ import logging
 from torch import nn
 import random
 from tensorboardX import SummaryWriter
-from utils import create_train_arg_parser, define_loss
+from utils import create_train_arg_parser
+from legacy_utils import define_loss
 import segmentation_models_pytorch as smp
 import numpy as np
 from sklearn.metrics import cohen_kappa_score

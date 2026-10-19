@@ -87,7 +87,7 @@ eval_metrics.py                per-image Dice, Jaccard, clDice, topology and cla
 aggregate_folds.py             mean ± std over folds at each fold's best-validation epoch
 plot_runs.py, eval_checkpoint.py, rename_tb_tags.py   curves, re-evaluation of a checkpoint, TensorBoard tag conversion
 run_experiment.py, configs/    run an experiment from a YAML file (all folds, builds the data on demand); run_cv.sh, run_sweep.sh: shell equivalents
-legacy/                        scripts of the original BSDA-Net code base, not part of the pipeline
+legacy/                        scripts, helpers and models of the original BSDA-Net code base (not part of the pipeline; see legacy/README.md)
 Preprocessing/build_processed_octa500.py   builds the training data from the raw OCTA-500 release
 analysis/                      FOV / biomarker baseline, vessel post-processing check
 tests/                         unit tests (python -m unittest discover -s tests)

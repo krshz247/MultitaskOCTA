@@ -58,11 +58,18 @@ fig_all, axs_all = plt.subplots(len(runs), 6, figsize=(24, 3 * len(runs)), squee
 for r, jf in enumerate(runs):
     d = os.path.dirname(jf)
     name = os.path.basename(d)
-    tr, va = parse(os.path.join(d, "train.log"))
+    log = next((c for c in (os.path.join(d, "train.log"), os.path.join(d, f"train_fold{fold}.log")) if os.path.exists(c)), None)
+    if log is None:
+        print("no training log in", d, "- skipped")
+        continue
+    tr, va = parse(log)
     res = json.load(open(jf))
+    if "faz_dice" not in res["history"][0]["val"]:
+        print("classification-only run, no segmentation curves:", name, "- skipped")
+        continue
     fig, axs = plt.subplots(1, 6, figsize=(24, 3))
     for a_set in (axs, axs_all[r]):
         draw(a_set, name, tr, va, res["history"], res["args"].get("startpoint", 0))
     fig.tight_layout(); fig.savefig(os.path.join(d, "curves.png"), dpi=70); plt.close(fig)
 fig_all.tight_layout(); fig_all.savefig(os.path.join(out_dir, "all_curves.png"), dpi=55)
-print("wrote", len(runs), "run figures +", os.path.join(out_dir, "all_curves.png"))
+print("wrote figures for", len(runs), "run folders +", os.path.join(out_dir, "all_curves.png"))

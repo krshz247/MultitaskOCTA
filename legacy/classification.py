@@ -11,7 +11,8 @@ import cv2
 import torchmetrics
 from tensorboardX import SummaryWriter
 import wandb
-from utils import create_train_arg_parser, define_loss, generate_dataset
+from utils import create_train_arg_parser, generate_dataset
+from legacy_utils import define_loss
 from losses import My_multiLoss
 import segmentation_models_pytorch as smp
 from segmentation_models_pytorch.encoders.timm_resnest import ResNestEncoder, timm_resnest_encoders

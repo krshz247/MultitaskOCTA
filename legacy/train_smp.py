@@ -8,7 +8,8 @@ import logging
 from torch import nn
 import random
 from tensorboardX import SummaryWriter
-from utils import visualize, evaluate, create_train_arg_parser, evaluate_modi
+from utils import create_train_arg_parser
+from legacy_utils import visualize, evaluate, evaluate_modi
 from losses import LossUNet, LossDCAN, LossDMTN, LossPsiNet
 from models import UNet, UNet_DCAN, UNet_DMTN, PsiNet, UNet_ConvMCD
 from dataset import DatasetImageMaskContourDist

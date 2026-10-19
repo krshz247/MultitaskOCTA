@@ -7,9 +7,9 @@ from models import UNet, UNet_DCAN, UNet_DMTN, PsiNet, UNet_ConvMCD
 from tqdm import tqdm
 import numpy as np
 import cv2
-from utils import create_validation_arg_parser
+from legacy_utils import create_validation_arg_parser
 import scipy.io as scio
-from utils import AverageMeter
+from legacy_utils import AverageMeter
 import segmentation_models_pytorch as smp
 from sklearn.metrics import cohen_kappa_score, accuracy_score, confusion_matrix, recall_score, f1_score, classification_report, jaccard_score
 from train_seg_clf import CotrainingModelMulti
