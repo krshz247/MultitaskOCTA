@@ -5,7 +5,7 @@ import json, os, sys, unittest, warnings
 warnings.filterwarnings("ignore")
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
-from utils import create_train_arg_parser
+from octa.config import create_train_arg_parser
 
 GOLDEN = os.path.join(ROOT, "tests", "golden", "cli_parser.json")
 
@@ -42,20 +42,20 @@ if __name__ == "__main__":
 
 class TypedConfig(unittest.TestCase):
     def test_parse_config_matches_parser(self):
-        import train_config as T
+        import octa.config as T
         self.assertEqual(vars(T.parse_config([])), vars(create_train_arg_parser().parse_args([])))
         c = T.parse_config(["--fold", "3", "--strong_aug", "--seg_loss_weights", "0", "0", "0", "--scheduler", "onecycle"])
         self.assertEqual((c.fold, c.strong_aug, c.seg_loss_weights, c.scheduler), (3, True, [0.0, 0.0, 0.0], "onecycle"))
         self.assertIsInstance(c, T.TrainConfig)
 
     def test_defaults_are_independent_copies(self):  # mutable defaults must not be shared between configurations
-        import train_config as T
+        import octa.config as T
         a, b = T.parse_config([]), T.parse_config([])
         a.seg_loss_weights[0] = 99.0
         self.assertEqual(b.seg_loss_weights, [3.0, 1.0, 1.0])
 
     def test_every_yaml_option_exists(self):
-        import glob, yaml, run_experiment as R
+        import glob, run_experiment as R
         for f in glob.glob(os.path.join(ROOT, "configs", "*.yaml")):
             self.assertEqual(R.validate_args(R.load(f).get("args", {})), [], f)
         self.assertEqual(R.validate_args({"num_epoch": 3}), [("num_epoch", ["num_epochs"])])

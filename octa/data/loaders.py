@@ -1,6 +1,5 @@
 from torch.utils.data import DataLoader
-from train_config import build_parser
-from dataset import DatasetImageMaskContourDist, mean_and_std, DatasetImageFazMaskContourDist, DatasetImageClassification
+from octa.data.dataset import DatasetImageMaskContourDist, mean_and_std, DatasetImageFazMaskContourDist, DatasetImageClassification
 
 
 def generate_dataset(train_img_names, val_img_names, test_img_names, input_size, batch_size, val_batch_size, distance_type, do_clahe, train_type, train_gt_names=None, val_gt_names=None, test_gt_names=None, num_workers=0, full_eval=False):
@@ -29,8 +28,3 @@ def generate_dataset(train_img_names, val_img_names, test_img_names, input_size,
     test_loader = DataLoader(test_dataset, batch_size=val_batch_size, shuffle=False, drop_last=not full_eval, num_workers=num_workers, persistent_workers=num_workers > 0)
 
     return train_loader, valid_loader, test_loader
-
-
-def create_train_arg_parser():
-    """argparse parser of the training scripts, derived from the TrainConfig dataclass (train_config.py)."""
-    return build_parser()

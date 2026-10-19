@@ -17,7 +17,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from faz_vessel_seg_cls import kfold_split
+from octa.common import kfold_split
 
 D = sys.argv[1] if len(sys.argv) > 1 else "Datasets/processed_OCTA500/ILM_OPL_large"
 names = sorted(glob.glob(os.path.join(D, "image_surface", "*.bmp")))

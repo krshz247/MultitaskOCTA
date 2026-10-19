@@ -19,8 +19,8 @@ jobs:
           pip install -r requirements.txt pyflakes
       - name: pyflakes (pipeline files)
         run: |
-          python -m pyflakes aggregate_folds.py augment_gpu.py classification_baseline.py dataset.py eval_checkpoint.py eval_metrics.py \
-            faz_vessel_seg_cls.py losses.py plot_runs.py run_experiment.py utils.py analysis Preprocessing/build_processed_octa500.py tests
+          python -m pyflakes octa aggregate_folds.py classification_baseline.py eval_checkpoint.py faz_vessel_seg_cls.py \
+            plot_runs.py run_experiment.py analysis Preprocessing/build_processed_octa500.py tests
       - name: Fast unit tests
         env:
           SKIP_SLOW_TESTS: "1"

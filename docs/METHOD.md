@@ -11,7 +11,7 @@ raw OCTA-500 ──Preprocessing/build_processed_octa500.py──▶ Datasets/pr
       │                                                     image_surface/  gt_{full,vessel,faz}/mask/
       │                                                     gt_{vessel,faz}/{contour_img,dist_signed11_img}/
       ▼
-faz_vessel_seg_cls.py --fold k   (train: dataset.py + losses.py + smp_model.py; evaluate: eval_metrics.py)
+faz_vessel_seg_cls.py --fold k   (train: octa/data + octa/losses.py + octa/models.py; evaluate: octa/metrics.py)
       ▼
 <save_path>/results_fold<k>.json · best_fold<k>.pt · preds_fold<k>/ · tb_fold<k>/ · train.log
       ▼
@@ -46,14 +46,14 @@ Class × field-of-view counts (important confound: the classifier could use the 
 | DR | 29 | 35 | 55 % |
 | AMD | 6 | 43 | 88 % |
 
-Split: stratified (by class) 5-fold cross-validation, `kfold_split` in `faz_vessel_seg_cls.py` (seed 2021). Fold *k* is the test set, fold *k+1* the validation set, the other three train (≈ 218 / 73 / 73 scans). Model selection uses the validation set only.
+Split: stratified (by class) 5-fold cross-validation, `kfold_split` in `octa/common.py` (seed 2021). Fold *k* is the test set, fold *k+1* the validation set, the other three train (≈ 218 / 73 / 73 scans). Model selection uses the validation set only.
 
 ## 3. Thesis → code map
 
 | Thesis | Code | Status |
 |---|---|---|
-| §3.1 input B5, 384 × 384 | `dataset.py:load_image` (÷ per-image max, then ÷ dataset mean/std), `--input_size` | match (normalisation details not in thesis) |
-| §3.3 shared encoder + 3 decoders S, B, D; ResNeSt50 | `smp_model.py:MyMultibranchModel` (encoder ``timm-resnest50d``, decoders `MyUnetDecoder`); `--encoder` default | match |
+| §3.1 input B5, 384 × 384 | `octa/data/dataset.py:load_image` (÷ per-image max, then ÷ dataset mean/std), `--input_size` | match (normalisation details not in thesis) |
+| §3.3 shared encoder + 3 decoders S, B, D; ResNeSt50 | `octa/models.py:MyMultibranchModel` (encoder ``timm-resnest50d``, decoders `MyUnetDecoder`); `--encoder` default | match |
 | S has 3 channels | segmentation head: [FAZ, vessel, background]; B and D have 2 channels [FAZ, vessel] | match |
 | B features concatenated into S | `cat_conv(cat[decoder1_out, decoder2_out])` before the S head; D only feeds its own loss and the classifier | match |
 | Heatmap GT, Eq. 3.9–3.11 (Gaussian, Heatsum, < 0.001 → 0, normalised) | `Preprocessing/build_processed_octa500.py:boundary_heatmap`: σ = 1.6, amplitude 0.06 (as `pre_dis.m`), noisy-or sum, rescale to [0,1], then < 0.001 → 0 | approx (σ and the order of threshold / normalisation are not given in the thesis) |
@@ -63,11 +63,11 @@ Split: stratified (by class) 5-fold cross-validation, `kfold_split` in `faz_vess
 | background channel | `+ Dice(background)` in `seg_loss` (`--bg_dice`, default 1) | deviation (the original code computed this sum; the thesis equation omits it; the 3-channel argmax needs it) |
 | Eq. 3.15 `L_seg = λ1 L_sh + λ2 L_bd + λ3 L_sd` | `loss_weights = [3, 1, 1]` | match |
 | Eq. 3.16 joint loss, classifier frozen for epoch ≤ τ | `if epoch > startpoint` (unfreeze and add CE); `--startpoint 20` | match |
-| classifier: ResNeSt50, ImageNet, features of all decoder blocks concatenated, 1×1 convs | `smp_model.py:MyResNestEncoderMulti`, `CotrainingModelMulti.clf_model` | match |
+| classifier: ResNeSt50, ImageNet, features of all decoder blocks concatenated, 1×1 convs | `octa/models.py:MyResNestEncoderMulti`, `CotrainingModelMulti.clf_model` | match |
 | weighted cross-entropy (Discussion) | `CrossEntropyLoss(weight=[0.49, 1.88, 2.35])` ≈ inverse class frequency | match (values not in thesis) |
-| Adam, LR 1e-4 (seg) / 2e-5 (cls), batch 4, 100 epochs, τ = 20 | `utils.py` defaults | match |
+| Adam, LR 1e-4 (seg) / 2e-5 (cls), batch 4, 100 epochs, τ = 20 | `octa/config.py` defaults (`TrainConfig`, listed in docs/OPTIONS.md) | match |
 | no LR schedule | `--scheduler none` (default); `onecycle` / `cosine` optional | match |
-| augmentation: random 90° rotations, h/v flips | `dataset.py:random_rot_flip`, train split only | match |
+| augmentation: random 90° rotations, h/v flips | `octa/data/dataset.py:random_rot_flip`, train split only | match |
 | 5-fold cross-validation, mean ± std | `--fold k`, `--num_folds 5`; `aggregate_folds.py` | match (needs 5 runs) |
 | Dice / Jaccard / clDice, Eq. 3.17–3.19 | see §4 | **definition differs**, see §4 |
 
@@ -77,7 +77,7 @@ Optional additions, all **off by default**: `--vessel_bce`, `--exclusion`, `--au
 
 ## 4. Metrics (what the numbers mean)
 
-Per image on the 384 × 384 maps, averaged over images (`eval_metrics.py:evaluate_loader`). The class map is the **argmax over the 3 sigmoid channels**.
+Per image on the 384 × 384 maps, averaged over images (`octa/metrics.py:evaluate_loader`). The class map is the **argmax over the 3 sigmoid channels**.
 
 | Name | Definition |
 |---|---|

@@ -7,7 +7,7 @@ import torch
 warnings.filterwarnings("ignore")
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
-import smp_model as M
+import octa.models as M
 
 GOLDEN = os.path.join(ROOT, "tests", "golden", "model_structure.json")
 FAMILIES = {"resnet": "resnet50", "resnest": "timm-resnest50d", "res2net": "timm-res2net50_26w_4s", "sknet": "timm-skresnet18", "vgg": "vgg11"}

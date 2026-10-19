@@ -2,7 +2,7 @@
 
 TrainConfig is a dataclass; build_parser() derives the argparse parser from its fields (flag = field name, default = field default,
 type / choices / nargs / action / help from the field metadata), parse_config() returns a TrainConfig. The options, defaults and help
-texts are pinned by tests/test_config.py. `python train_config.py --markdown` prints the option table (docs/OPTIONS.md).
+texts are pinned by tests/test_config.py. `python -m octa.config --markdown` prints the option table (docs/OPTIONS.md).
 """
 import argparse
 from dataclasses import MISSING, dataclass, field, fields
@@ -100,6 +100,9 @@ def build_parser():
                 kwargs[key] = md[key]
         parser.add_argument("--" + f.name, **kwargs)
     return parser
+
+
+create_train_arg_parser = build_parser  # name used by the legacy scripts
 
 
 def parse_config(argv=None) -> TrainConfig:

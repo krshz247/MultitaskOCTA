@@ -14,9 +14,10 @@ import numpy as np, cv2, torch
 from torch import nn
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from faz_vessel_seg_cls import CotrainingModelMulti, kfold_split
-from classification_baseline import ResNeStClassifier
-from dataset import mean_and_std
+from octa.joint_training import CotrainingModelMulti
+from octa.common import kfold_split
+from octa.classification_training import ResNeStClassifier
+from octa.data.dataset import mean_and_std
 
 ap = argparse.ArgumentParser(); ap.add_argument("--joint", required=True); ap.add_argument("--cls", required=True); ap.add_argument("--clsreg", required=True); ap.add_argument("--data", required=True); ap.add_argument("--draws", type=int, default=3)
 a = ap.parse_args()

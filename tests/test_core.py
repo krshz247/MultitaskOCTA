@@ -5,10 +5,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Preprocessing"))
 os.chdir(os.path.join(os.path.dirname(__file__), ".."))
 import warnings; warnings.filterwarnings("ignore")
-from faz_vessel_seg_cls import kfold_split, make_scheduler
-from dataset import random_rot_flip
-from losses import VesselClDiceLoss, Vessel_FAZ_multiLoss
-from eval_metrics import _cl_dice, _components, _dice_jaccard
+from octa.common import kfold_split, make_scheduler
+from octa.data.dataset import random_rot_flip
+from octa.losses import VesselClDiceLoss, Vessel_FAZ_multiLoss
+from octa.metrics import _cl_dice, _components, _dice_jaccard
 import build_processed_octa500 as B
 
 NAMES = [f"/x/image_surface/{c}_{f}_{i:05d}.bmp" for i, (c, f) in enumerate([("N", "3")] * 40 + [("N", "6")] * 20 + [("D", "3")] * 8 + [("D", "6")] * 8 + [("M", "3")] * 3 + [("M", "6")] * 12)]

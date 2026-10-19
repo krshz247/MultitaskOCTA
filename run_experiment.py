@@ -13,7 +13,7 @@ The resolved configuration is saved as <run dir>/config.yaml together with the g
 import argparse, copy, difflib, os, subprocess, sys
 from dataclasses import fields
 import yaml
-from train_config import TrainConfig
+from octa.config import TrainConfig
 
 SCRIPTS = {"joint": "faz_vessel_seg_cls.py", "classification": "classification_baseline.py"}
 

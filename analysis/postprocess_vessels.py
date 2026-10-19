@@ -5,9 +5,10 @@ import numpy as np, torch
 from scipy import ndimage as ndi
 from torch import nn
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from faz_vessel_seg_cls import CotrainingModelMulti, kfold_split
-from eval_metrics import _cl_dice, _components, _dice_jaccard
-from utils import generate_dataset
+from octa.joint_training import CotrainingModelMulti
+from octa.common import kfold_split
+from octa.metrics import _cl_dice, _components, _dice_jaccard
+from octa.data.loaders import generate_dataset
 
 ap = argparse.ArgumentParser(); ap.add_argument("--run", required=True); ap.add_argument("--data", required=True); ap.add_argument("--fold", type=int, default=0)
 a = ap.parse_args()

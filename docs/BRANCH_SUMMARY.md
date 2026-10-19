@@ -5,7 +5,7 @@ from the method described in the thesis, adds a leakage-free evaluation protocol
 opened yet.** `git log master..HEAD` lists 36 commits; `docs/METHOD.md` is the reference for how the code implements the thesis.
 
 ## Bug fixes (change what is trained)
-* **clDice term was always zero and then overwritten** (`losses.py`): the vendored soft-clDice sliced `[:, 1:]` on a single channel, and the
+* **clDice term was always zero and then overwritten** (`octa/losses.py`): the vendored soft-clDice sliced `[:, 1:]` on a single channel, and the
   multi-task loss then replaced the segmentation loss by a plain 3-channel Dice. Now `Dice(FAZ) + Dice(background) + soft-clDice(vessel)`.
 * Metrics were computed on `round(logits)`; class weights were computed but unused; the classifier was unfrozen one epoch too early
   (`epoch >= startpoint` vs `>`); the "best" checkpoint kept the epoch with the highest validation loss; `.cuda()` was hard-coded.
@@ -33,5 +33,5 @@ repairs connectivity metrics for free. Thesis numbers are not treated as targets
 ## Review checklist
 * `python -m unittest discover -s tests` (13 tests) — passes.
 * `python run_experiment.py configs/joint_cv40.yaml --dry-run` prints the commands.
-* Files of interest: `losses.py`, `faz_vessel_seg_cls.py`, `eval_metrics.py`, `augment_gpu.py`, `Preprocessing/build_processed_octa500.py`, `docs/METHOD.md`.
+* Files of interest: `octa/losses.py`, `octa/joint_training.py`, `octa/metrics.py`, `octa/data/augment.py`, `Preprocessing/build_processed_octa500.py`, `docs/METHOD.md`.
 * Large artefacts (`runs*/`, `Datasets/`, `kaggle_upload/`, virtual environments) are git-ignored.

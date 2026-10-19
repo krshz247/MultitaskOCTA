@@ -14,9 +14,10 @@ from sklearn.preprocessing import StandardScaler
 from torch import nn
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from faz_vessel_seg_cls import CotrainingModelMulti, kfold_split
-from eval_metrics import _cl_dice, _components, _dice_jaccard
-from dataset import mean_and_std
+from octa.joint_training import CotrainingModelMulti
+from octa.common import kfold_split
+from octa.metrics import _cl_dice, _components, _dice_jaccard
+from octa.data.dataset import mean_and_std
 
 ap = argparse.ArgumentParser(); ap.add_argument("--joint", required=True); ap.add_argument("--data", required=True); a = ap.parse_args()
 names = sorted(glob.glob(os.path.join(a.data, "image_surface", "*.bmp"))); idx = {n: i for i, n in enumerate(names)}

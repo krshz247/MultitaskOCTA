@@ -5,9 +5,10 @@ Usage: python eval_checkpoint.py --run runs/<config> --data Datasets/processed_O
 import argparse, glob, json, os
 import torch
 from torch import nn
-from faz_vessel_seg_cls import CotrainingModelMulti, kfold_split
-from eval_metrics import evaluate_loader
-from utils import generate_dataset
+from octa.joint_training import CotrainingModelMulti
+from octa.common import kfold_split
+from octa.metrics import evaluate_loader
+from octa.data.loaders import generate_dataset
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--run", required=True)

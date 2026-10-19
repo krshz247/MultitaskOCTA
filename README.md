@@ -78,12 +78,10 @@ The thesis' classification accuracy (≈ 95 %) is far above what a leakage-free,
 ## Repository structure
 
 ```
-faz_vessel_seg_cls.py          train / evaluate the joint RV + FAZ segmentation + classification model (this work), one CV fold per call
-classification_baseline.py     classification-only ResNeSt50 baseline, same protocol (data, folds, loss weights, metrics)
-dataset.py, utils.py           data loading, augmentation (90° rotations + flips), argument parser
-losses.py                      Dice, soft-clDice (VesselClDiceLoss) and the multi-task loss
-smp_model.py                   encoder / three decoders / classifier definitions (segmentation_models_pytorch based)
-eval_metrics.py                per-image Dice, Jaccard, clDice, topology and classification metrics
+faz_vessel_seg_cls.py          entry point: train / evaluate the joint RV + FAZ segmentation + classification model (this work), one CV fold per call
+octa/                          the package behind it: joint_training.py, classification_training.py, config.py (all options), common.py (split, schedules),
+                               losses.py, models.py, metrics.py, data/ (dataset, loaders, mask-consistent augmentation)
+classification_baseline.py     entry point: classification-only ResNeSt50 baseline, same protocol (data, folds, loss weights, metrics)
 aggregate_folds.py             mean ± std over folds at each fold's best-validation epoch
 plot_runs.py, eval_checkpoint.py, rename_tb_tags.py   curves, re-evaluation of a checkpoint, TensorBoard tag conversion
 run_experiment.py, configs/    run an experiment from a YAML file (all folds, builds the data on demand); run_cv.sh, run_sweep.sh: shell equivalents

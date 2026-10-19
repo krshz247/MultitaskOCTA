@@ -12,5 +12,5 @@
 | `classification_regularised.yaml` | classification-only with strong augmentation and regularisation |
 
 Sections: `name`, `base` (parent file), `script` (`joint` | `classification`), `paths`, `data` (options of
-`Preprocessing/build_processed_octa500.py`), `args` (each key becomes `--key value` of the training script; see `utils.py` for all options,
+`Preprocessing/build_processed_octa500.py`), `args` (each key becomes `--key value` of the training script; see `docs/OPTIONS.md` / `octa/config.py` for all options,
 e.g. `scheduler: onecycle`, `cldice_alpha`, `vessel_bce`, `stratify_fov`). The resolved configuration and the git commit are stored in `<runs_dir>/<name>/config.yaml`.
