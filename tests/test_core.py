@@ -100,6 +100,15 @@ class Configs(unittest.TestCase):
         reg = R.load(os.path.join(os.path.dirname(__file__), "..", "configs", "joint_regularised.yaml"))
         self.assertTrue(reg["args"]["strong_aug"]); self.assertEqual(reg["args"]["batch_size"], 4)  # inherited from joint_cv40
 
+    def test_seed_repeats_get_their_own_folders(self):
+        import run_experiment as R, io, contextlib
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            sys.argv = ["run_experiment.py", os.path.join(os.path.dirname(__file__), "..", "configs", "joint_cv40.yaml"), "--folds", "0", "--seeds", "1", "2", "--dry-run"]
+            R.main()
+        out = buf.getvalue()
+        self.assertIn("runs/joint_cv40_s1", out); self.assertIn("runs/joint_cv40_s2", out); self.assertIn("--seed 2", out)
+
     def test_cli_and_override(self):
         import run_experiment as R
         self.assertEqual(R.cli({"a": 1, "flag": True, "off": False, "none": None, "xs": [1, 2]}), ["--a", "1", "--flag", "--xs", "1", "2"])

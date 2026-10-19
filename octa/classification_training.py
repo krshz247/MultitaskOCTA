@@ -61,7 +61,7 @@ def predict(model, loader, device):
 
 def main():
     args = parse_config()
-    set_seed(2021)
+    set_seed(args.seed)
     device = torch.device(args.device if args.device != "auto" else "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     names = sorted(glob.glob(os.path.join(args.img_path, "*.bmp")))
     gt = lambda L: [n.replace("image_surface", args.gt_path.split("/")[-2] + "/mask") for n in L]

@@ -95,53 +95,53 @@
   "action": "_StoreAction",
   "help": "percentage of the files in the dataset used for test"
  },
- "train_type": {
+ "num_folds": {
   "flags": [
-   "--train_type"
+   "--num_folds"
   ],
-  "default": "cotraining",
-  "type": "str",
+  "default": 5,
+  "type": "int",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "Select training type, including single classification, segmentation, cotraining and multitask. "
+  "help": "Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split."
  },
- "model_type": {
+ "fold": {
   "flags": [
-   "--model_type"
+   "--fold"
   ],
-  "default": null,
-  "type": "str",
+  "default": 0,
+  "type": "int",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "select model type: unet,dcan,dmtn,psinet,convmcd"
+  "help": "Fold used as the test set (validation = next fold) when --num_folds > 1."
  },
- "log_mode": {
+ "stratify_fov": {
   "flags": [
-   "--log_mode"
+   "--stratify_fov"
   ],
-  "default": true,
-  "type": "bool",
-  "nargs": null,
+  "default": false,
+  "type": null,
+  "nargs": 0,
   "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "logging in wandb"
+  "const": true,
+  "action": "_StoreTrueAction",
+  "help": "stratify the folds by class x field of view (default: class only, as in the thesis protocol)."
  },
- "object_type": {
+ "full_eval": {
   "flags": [
-   "--object_type"
+   "--full_eval"
   ],
-  "default": null,
-  "type": "str",
-  "nargs": null,
+  "default": false,
+  "type": null,
+  "nargs": 0,
   "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "Dataset."
+  "const": true,
+  "action": "_StoreTrueAction",
+  "help": "evaluate every validation/test scan (drop_last=False); default keeps the original drop_last=True."
  },
  "distance_type": {
   "flags": [
@@ -154,18 +154,6 @@
   "const": null,
   "action": "_StoreAction",
   "help": "select distance transform type - dist_mask,dist_contour,dist_signed"
- },
- "batch_size": {
-  "flags": [
-   "--batch_size"
-  ],
-  "default": 4,
-  "type": "int",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "train batch size"
  },
  "input_size": {
   "flags": [
@@ -182,17 +170,53 @@
   "action": "_StoreAction",
   "help": "input image and mask size"
  },
- "val_batch_size": {
+ "num_workers": {
   "flags": [
-   "--val_batch_size"
+   "--num_workers"
   ],
-  "default": 4,
+  "default": 0,
   "type": "int",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "validation batch size"
+  "help": "DataLoader worker processes (0 = main process)."
+ },
+ "clahe": {
+  "flags": [
+   "--clahe"
+  ],
+  "default": false,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "do clahe."
+ },
+ "train_type": {
+  "flags": [
+   "--train_type"
+  ],
+  "default": "cotraining",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Select training type, including single classification, segmentation, cotraining and multitask. "
+ },
+ "seed": {
+  "flags": [
+   "--seed"
+  ],
+  "default": 2021,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "random seed of the training (weight initialisation of the new layers, batch order, augmentation); the cross-validation split is fixed."
  },
  "num_epochs": {
   "flags": [
@@ -206,125 +230,41 @@
   "action": "_StoreAction",
   "help": "number of epochs"
  },
- "device": {
+ "batch_size": {
   "flags": [
-   "--device"
+   "--batch_size"
   ],
-  "default": "auto",
-  "type": "str",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "auto (cuda > mps > cpu), cuda, mps or cpu."
- },
- "cuda_no": {
-  "flags": [
-   "--cuda_no"
-  ],
-  "default": 0,
+  "default": 4,
   "type": "int",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "cuda number"
+  "help": "train batch size"
  },
- "use_pretrained": {
+ "val_batch_size": {
   "flags": [
-   "--use_pretrained"
+   "--val_batch_size"
   ],
-  "default": false,
-  "type": "bool",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "Load pretrained checkpoint."
- },
- "pretrained_model_path": {
-  "flags": [
-   "--pretrained_model_path"
-  ],
-  "default": null,
-  "type": "str",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "If use_pretrained is true, provide checkpoint."
- },
- "save_path": {
-  "flags": [
-   "--save_path"
-  ],
-  "default": null,
-  "type": "str",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "Model save path."
- },
- "wandb_path": {
-  "flags": [
-   "--wandb_path"
-  ],
-  "default": null,
-  "type": "str",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "wandb log path."
- },
- "encoder": {
-  "flags": [
-   "--encoder"
-  ],
-  "default": "timm-resnest50d",
-  "type": "str",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "encoder (thesis: ResNeSt50 = timm-resnest50d)."
- },
- "pretrain": {
-  "flags": [
-   "--pretrain"
-  ],
-  "default": "imagenet",
-  "type": "str",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "choose pretrain."
- },
- "loss_type": {
-  "flags": [
-   "--loss_type"
-  ],
-  "default": null,
-  "type": "str",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "loss type."
- },
- "local_rank": {
-  "flags": [
-   "--local_rank"
-  ],
-  "default": 0,
+  "default": 4,
   "type": "int",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "node rank for distributed training"
+  "help": "validation batch size"
+ },
+ "startpoint": {
+  "flags": [
+   "--startpoint"
+  ],
+  "default": 20,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "start cotraining point."
  },
  "LR_seg": {
   "flags": [
@@ -349,18 +289,6 @@
   "const": null,
   "action": "_StoreAction",
   "help": "learning rate."
- },
- "use_scheduler": {
-  "flags": [
-   "--use_scheduler"
-  ],
-  "default": false,
-  "type": "bool",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "unused, see --scheduler."
  },
  "scheduler": {
   "flags": [
@@ -390,9 +318,21 @@
   "action": "_StoreAction",
   "help": "fraction of all steps used for LR warm-up."
  },
- "aux": {
+ "weight_decay": {
   "flags": [
-   "--aux"
+   "--weight_decay"
+  ],
+  "default": 0.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "classification-only baseline: > 0 switches Adam to AdamW with this weight decay."
+ },
+ "use_scheduler": {
+  "flags": [
+   "--use_scheduler"
   ],
   "default": false,
   "type": "bool",
@@ -400,7 +340,43 @@
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "choose to do classification"
+  "help": "unused, see --scheduler."
+ },
+ "eval_every": {
+  "flags": [
+   "--eval_every"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "every N epochs write per-image val/test metrics to results_fold<k>.json in save_path (0 = off)."
+ },
+ "encoder": {
+  "flags": [
+   "--encoder"
+  ],
+  "default": "timm-resnest50d",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "encoder (thesis: ResNeSt50 = timm-resnest50d)."
+ },
+ "pretrain": {
+  "flags": [
+   "--pretrain"
+  ],
+  "default": "imagenet",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "choose pretrain."
  },
  "attention": {
   "flags": [
@@ -426,30 +402,6 @@
   "action": "_StoreAction",
   "help": "encoder use bn"
  },
- "startpoint": {
-  "flags": [
-   "--startpoint"
-  ],
-  "default": 20,
-  "type": "int",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "start cotraining point."
- },
- "clahe": {
-  "flags": [
-   "--clahe"
-  ],
-  "default": false,
-  "type": "bool",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "do clahe."
- },
  "classnum": {
   "flags": [
    "--classnum"
@@ -462,41 +414,93 @@
   "action": "_StoreAction",
   "help": "clf class number."
  },
- "fold": {
+ "aux": {
   "flags": [
-   "--fold"
+   "--aux"
   ],
-  "default": 0,
-  "type": "int",
+  "default": false,
+  "type": "bool",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "Fold used as the test set (validation = next fold) when --num_folds > 1."
+  "help": "choose to do classification"
  },
- "eval_every": {
+ "model_type": {
   "flags": [
-   "--eval_every"
+   "--model_type"
   ],
-  "default": 0,
-  "type": "int",
+  "default": null,
+  "type": "str",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "every N epochs write per-image val/test metrics to results_fold<k>.json in save_path (0 = off)."
+  "help": "select model type: unet,dcan,dmtn,psinet,convmcd"
  },
- "vessel_bce": {
+ "object_type": {
   "flags": [
-   "--vessel_bce"
+   "--object_type"
   ],
-  "default": 0.0,
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Dataset."
+ },
+ "loss_type": {
+  "flags": [
+   "--loss_type"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "loss type."
+ },
+ "use_pretrained": {
+  "flags": [
+   "--use_pretrained"
+  ],
+  "default": false,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Load pretrained checkpoint."
+ },
+ "pretrained_model_path": {
+  "flags": [
+   "--pretrained_model_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "If use_pretrained is true, provide checkpoint."
+ },
+ "seg_loss_weights": {
+  "flags": [
+   "--seg_loss_weights"
+  ],
+  "default": [
+   3.0,
+   1.0,
+   1.0
+  ],
   "type": "float",
-  "nargs": null,
+  "nargs": 3,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "weight of an extra BCE on the vessel channel (0 = thesis loss)."
+  "help": "lambda_1 (segmentation), lambda_2 (boundary heatmap), lambda_3 (SDM); thesis 3 1 1. 0 0 0 trains the segmentation network without any segmentation supervision."
  },
  "bg_dice": {
   "flags": [
@@ -534,17 +538,17 @@
   "action": "_StoreAction",
   "help": "weight of the vessel (Dice + clDice) term in the segmentation loss."
  },
- "num_workers": {
+ "vessel_bce": {
   "flags": [
-   "--num_workers"
+   "--vessel_bce"
   ],
-  "default": 0,
-  "type": "int",
+  "default": 0.0,
+  "type": "float",
   "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "DataLoader worker processes (0 = main process)."
+  "help": "weight of an extra BCE on the vessel channel (0 = thesis loss)."
  },
  "exclusion": {
   "flags": [
@@ -573,30 +577,6 @@
   "action": "_StoreAction",
   "help": "channels used by the heatmap/SDM auxiliary losses (thesis: both)."
  },
- "stratify_fov": {
-  "flags": [
-   "--stratify_fov"
-  ],
-  "default": false,
-  "type": null,
-  "nargs": 0,
-  "choices": null,
-  "const": true,
-  "action": "_StoreTrueAction",
-  "help": "stratify the folds by class x field of view (default: class only, as in the thesis protocol)."
- },
- "full_eval": {
-  "flags": [
-   "--full_eval"
-  ],
-  "default": false,
-  "type": null,
-  "nargs": 0,
-  "choices": null,
-  "const": true,
-  "action": "_StoreTrueAction",
-  "help": "evaluate every validation/test scan (drop_last=False); default keeps the original drop_last=True."
- },
  "label_smoothing": {
   "flags": [
    "--label_smoothing"
@@ -608,30 +588,6 @@
   "const": null,
   "action": "_StoreAction",
   "help": "classification-only baseline: label smoothing of the cross-entropy."
- },
- "cls_dropout": {
-  "flags": [
-   "--cls_dropout"
-  ],
-  "default": 0.0,
-  "type": "float",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "classification-only baseline: dropout before the linear layer."
- },
- "weight_decay": {
-  "flags": [
-   "--weight_decay"
-  ],
-  "default": 0.0,
-  "type": "float",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "classification-only baseline: > 0 switches Adam to AdamW with this weight decay."
  },
  "strong_aug": {
   "flags": [
@@ -645,21 +601,17 @@
   "action": "_StoreTrueAction",
   "help": "classification-only baseline: random affine + intensity + noise + erasing on top of the rotations/flips."
  },
- "seg_loss_weights": {
+ "cls_dropout": {
   "flags": [
-   "--seg_loss_weights"
+   "--cls_dropout"
   ],
-  "default": [
-   3.0,
-   1.0,
-   1.0
-  ],
+  "default": 0.0,
   "type": "float",
-  "nargs": 3,
+  "nargs": null,
   "choices": null,
   "const": null,
   "action": "_StoreAction",
-  "help": "lambda_1 (segmentation), lambda_2 (boundary heatmap), lambda_3 (SDM); thesis 3 1 1. 0 0 0 trains the segmentation network without any segmentation supervision."
+  "help": "classification-only baseline: dropout before the linear layer."
  },
  "detach_clf_features": {
   "flags": [
@@ -685,18 +637,6 @@
   "action": "_StoreTrueAction",
   "help": "control: give every training image the masks of a different training scan."
  },
- "num_folds": {
-  "flags": [
-   "--num_folds"
-  ],
-  "default": 5,
-  "type": "int",
-  "nargs": null,
-  "choices": null,
-  "const": null,
-  "action": "_StoreAction",
-  "help": "Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split."
- },
  "augmentation": {
   "flags": [
    "--augmentation"
@@ -708,5 +648,77 @@
   "const": null,
   "action": "_StoreAction",
   "help": "using data augmentation."
+ },
+ "save_path": {
+  "flags": [
+   "--save_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "Model save path."
+ },
+ "wandb_path": {
+  "flags": [
+   "--wandb_path"
+  ],
+  "default": null,
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "wandb log path."
+ },
+ "log_mode": {
+  "flags": [
+   "--log_mode"
+  ],
+  "default": true,
+  "type": "bool",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "logging in wandb"
+ },
+ "device": {
+  "flags": [
+   "--device"
+  ],
+  "default": "auto",
+  "type": "str",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "auto (cuda > mps > cpu), cuda, mps or cpu."
+ },
+ "cuda_no": {
+  "flags": [
+   "--cuda_no"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "cuda number"
+ },
+ "local_rank": {
+  "flags": [
+   "--local_rank"
+  ],
+  "default": 0,
+  "type": "int",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "node rank for distributed training"
  }
 }

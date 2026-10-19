@@ -61,6 +61,7 @@ def cli(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("config"); ap.add_argument("--folds", type=int, nargs="*"); ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--seeds", type=int, nargs="*", help="repeat the whole cross-validation with these training seeds; run folders get the suffix _s<seed> (aggregate with aggregate_seeds.py)")
     ap.add_argument("--set", nargs="*", default=[], metavar="section.key=value")
     a = ap.parse_args()
     cfg = load(a.config)
@@ -73,31 +74,33 @@ def main():
     folds = a.folds if a.folds is not None and len(a.folds) else list(range(args.get("num_folds", 5)))
     data_name = "{}_{}".format(data.get("projection", "ILM_OPL"), data.get("vessel", "large")) + {"native": "", "center3mm": "_fov3"}[data.get("fov_mode", "native")]
     data_dir = os.path.join(paths["data_root"], data_name)
-    run_dir = os.path.join(paths["runs_dir"], cfg["name"])
     py = sys.executable
     build = [py, "Preprocessing/build_processed_octa500.py", "--octa500", paths["raw_octa500"], "--out", data_dir, "--projection", data.get("projection", "ILM_OPL"),
              "--vessel", data.get("vessel", "large"), "--fov_mode", data.get("fov_mode", "native")] + (["--limit", str(data["limit"])] if data.get("limit") else [])
-    base = [py, SCRIPTS[cfg.get("script", "joint")], "--img_path", os.path.join(data_dir, "image_surface"), "--gt_path", os.path.join(data_dir, "gt_full", "mask"),
-            "--save_path", run_dir, "--train_type", "Vessel_FAZ", "--distance_type", "dist_signed11"] + cli(args)
     if not os.path.isdir(os.path.join(data_dir, "image_surface")) or data.get("rebuild"):
         print("dataset:", " ".join(build))
         if not a.dry_run:
             subprocess.run(build, check=True)
     git = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-    if not a.dry_run:
-        os.makedirs(os.path.join(run_dir, "summary"), exist_ok=True)
-        yaml.safe_dump({**cfg, "git_commit": git}, open(os.path.join(run_dir, "config.yaml"), "w"), sort_keys=False)
     env = dict(os.environ, WANDB_MODE="disabled", PYTHONWARNINGS="ignore")
-    for fold in folds:
-        cmd = base + ["--fold", str(fold)]
-        print(f"fold {fold}:", " ".join(cmd))
-        if a.dry_run:
-            continue
-        with open(os.path.join(run_dir, f"train_fold{fold}.log"), "w") as log:
-            if subprocess.run(cmd, env=env, stdout=log, stderr=subprocess.STDOUT).returncode:
-                print(f"fold {fold} FAILED, see {log.name}", file=sys.stderr)
-    if not a.dry_run:
-        print("results:", run_dir, "-> python aggregate_folds.py", run_dir)
+    for seed in (a.seeds if a.seeds else [None]):
+        run_dir = os.path.join(paths["runs_dir"], cfg["name"] + (f"_s{seed}" if seed is not None else ""))
+        run_args = dict(args, **({"seed": seed} if seed is not None else {}))
+        base = [py, SCRIPTS[cfg.get("script", "joint")], "--img_path", os.path.join(data_dir, "image_surface"), "--gt_path", os.path.join(data_dir, "gt_full", "mask"),
+                "--save_path", run_dir, "--train_type", "Vessel_FAZ", "--distance_type", "dist_signed11"] + cli(run_args)
+        if not a.dry_run:
+            os.makedirs(os.path.join(run_dir, "summary"), exist_ok=True)
+            yaml.safe_dump({**cfg, "args": run_args, "git_commit": git}, open(os.path.join(run_dir, "config.yaml"), "w"), sort_keys=False)
+        for fold in folds:
+            cmd = base + ["--fold", str(fold)]
+            print(f"seed {seed} fold {fold}:" if seed is not None else f"fold {fold}:", " ".join(cmd))
+            if a.dry_run:
+                continue
+            with open(os.path.join(run_dir, f"train_fold{fold}.log"), "w") as log:
+                if subprocess.run(cmd, env=env, stdout=log, stderr=subprocess.STDOUT).returncode:
+                    print(f"fold {fold} FAILED, see {log.name}", file=sys.stderr)
+        if not a.dry_run:
+            print("results:", run_dir, "-> python aggregate_folds.py", run_dir)
 
 
 if __name__ == "__main__":

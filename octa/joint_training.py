@@ -309,10 +309,8 @@ class CotrainingModelMulti(nn.Module):
 def main():
     with torch.backends.cudnn.flags(enabled=True, benchmark=True, deterministic=False, allow_tf32=False):
         torch.set_num_threads(4)
-        set_seed(2021)
-
-
         args = parse_config()
+        set_seed(args.seed)
         CUDA_SELECT = "cuda:{}".format(args.cuda_no)
         print("cuda_count:", torch.cuda.device_count())
 
@@ -436,7 +434,7 @@ def main():
             random.shuffle(val_file_names)
 
         if args.shuffle_masks:  # control: every training image gets the ground truth of another training scan (segmentation supervision carries no information about the image)
-            _g = list(train_gt_names); random.Random(2021 + args.fold).shuffle(_g); train_gt_names = _g
+            _g = list(train_gt_names); random.Random(args.seed + args.fold).shuffle(_g); train_gt_names = _g
             logging.info("training masks shuffled across scans")
         trainLoader, devLoader, testLoader = generate_dataset(train_img_names, val_img_names, test_img_names, args.input_size, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type, train_gt_names, val_gt_names, test_gt_names, num_workers=args.num_workers, full_eval=args.full_eval)
 

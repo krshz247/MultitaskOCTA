@@ -33,6 +33,7 @@ class TrainConfig:
 
     # ---- Training schedule and optimisation
     train_type: str = field(default='cotraining', metadata=dict(help='Select training type, including single classification, segmentation, cotraining and multitask. ', type='str'))
+    seed: int = field(default=2021, metadata=dict(help='random seed of the training (weight initialisation of the new layers, batch order, augmentation); the cross-validation split is fixed.', type='int'))
     num_epochs: int = field(default=100, metadata=dict(help='number of epochs', type='int'))
     batch_size: int = field(default=4, metadata=dict(help='train batch size', type='int'))
     val_batch_size: int = field(default=4, metadata=dict(help='validation batch size', type='int'))

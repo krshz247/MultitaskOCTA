@@ -17,6 +17,7 @@
 | `--num_workers` | `0` | DataLoader worker processes (0 = main process). |
 | `--clahe` | `False` | do clahe. |
 | `--train_type` | `cotraining` | Select training type, including single classification, segmentation, cotraining and multitask.  |
+| `--seed` | `2021` | random seed of the training (weight initialisation of the new layers, batch order, augmentation); the cross-validation split is fixed. |
 | `--num_epochs` | `100` | number of epochs |
 | `--batch_size` | `4` | train batch size |
 | `--val_batch_size` | `4` | validation batch size |

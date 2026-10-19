@@ -92,6 +92,11 @@ class Golden(unittest.TestCase):
     def test_joint_model_without_wandb(self):  # wandb is an optional dependency: same numbers when it is not installed
         self.check("joint_nowandb", "faz_vessel_seg_cls.py", block=["wandb"], golden="joint")
 
+    def test_joint_model_other_seed(self):  # a different training seed is reproducible and gives different numbers
+        self.check("joint_seed7", "faz_vessel_seg_cls.py", ["--seed", "7"])
+        a, b = json.load(open(os.path.join(GOLDEN, "joint_seed7.json"))), json.load(open(os.path.join(GOLDEN, "joint.json")))
+        self.assertNotEqual(a, b)
+
     def test_classification_baseline(self):
         self.check("cls", "classification_baseline.py")
 

@@ -37,6 +37,10 @@ Parameter sets (first cell)
 | classification-only baseline | `[0,1,2,3,4]` | 40 / 8 | `["--full_eval"]`, and `SCRIPT = "classification_baseline.py"` | `ILM_OPL_large_cls40` |
 | common field of view | `[0,1,2,3,4]` | 40 / 8 | `["--full_eval"]` with `FOV_MODE = "center3mm"` | `ILM_OPL_large_fov3_cv40` |
 
+Repeats with different seeds (to measure how much a single run varies)
+* Add `SEED` to the first cell (default 2021; the cross-validation folds do not change with the seed) and give every run a name with the seed, e.g. `ILM_OPL_large_cv40reg_s1`, `..._s2`, `..._s3`. One 5-fold run of 40 epochs takes about 3 hours, so one seed per notebook version (Kaggle allows two GPU sessions at the same time).
+* After downloading the zips into `runs/`: `python aggregate_seeds.py --group joint_reg runs/<A>_s1 runs/<A>_s2 runs/<A>_s3 --group cls_reg runs/<B>_s1 runs/<B>_s2 runs/<B>_s3` — mean ± std over seeds and paired differences per seed.
+
 Planning
 * Kaggle sessions are limited (about 9–12 h) and the weekly GPU quota is 30 h. Run the *timing run* first and read the minutes per fold from the output; if 5 folds do not fit into one session, split the folds over several versions with different `RUN_NAME` and put the unzipped folders together in one directory afterwards (`aggregate_folds.py` reads every `results_fold*.json` in a directory).
 * Results are comparable with the Mac runs in accuracy, not bit for bit (different hardware).
