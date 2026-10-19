@@ -16,3 +16,28 @@ Notes
 * Smoke test: set `LIMIT = 30`, `EPOCHS = 2`, `FOLDS = [0]` (about 2 minutes).
 * Output limit is about 20 GB; one run is ≈ 0.5 GB (best checkpoint + figures).
 * Larger batches are possible on a GPU but change the method (`--batch_size 4` is the thesis value).
+
+## Full runs (checklist)
+
+Before every full run
+1. `git status` clean, then `kaggle/make_bundles.sh` — it packs **the last commit** (`git archive HEAD`). In Kaggle open the code dataset → *New Version* → upload `kaggle_upload/multitaskocta_code.zip` (the data dataset does not change). Wait until the notebook shows the new version number under *Input*.
+2. Notebook settings: *Accelerator* GPU T4 x2 (or P100), *Internet* On, *Persistence* none; both datasets attached.
+3. Edit **only the first cell** (parameters), then *Save Version → Save & Run All (Commit)*; the run continues without your browser. Output: `/kaggle/working/<RUN_NAME>.zip` (download from the version's *Output* tab).
+
+Parameter sets (first cell)
+| goal | FOLDS | EPOCHS / STARTPOINT | EXTRA | RUN_NAME |
+|---|---|---|---|---|
+| timing run | `[0]` | 40 / 8 | `["--full_eval"]` | `time_fold0` |
+| joint model, 5-fold CV (reported protocol) | `[0,1,2,3,4]` | 40 / 8 | `["--full_eval"]` | `ILM_OPL_large_cv40` |
+| joint model, thesis length | `[0,1,2,3,4]` | 100 / 20 | `["--full_eval"]` | `ILM_OPL_large_100` |
+| regularised joint model | `[0,1,2,3,4]` | 40 / 8 | `["--full_eval","--strong_aug","--label_smoothing","0.1","--cls_dropout","0.3","--weight_decay","0.01"]` | `ILM_OPL_large_cv40reg` |
+| ablation R4: no segmentation loss | `[0,1,2,3,4]` | 40 / 8 | regularised list + `["--seg_loss_weights","0","0","0"]` | `ILM_OPL_large_cv40reg_noseg` |
+| ablation R3: shuffled masks | `[0,1,2,3,4]` | 40 / 8 | regularised list + `["--shuffle_masks"]` | `ILM_OPL_large_cv40reg_shufmask` |
+| ablation R2: stop-gradient | `[2,3,4]` (folds 0–1 exist locally) | 40 / 8 | regularised list + `["--detach_clf_features"]` | `ILM_OPL_large_cv40reg_detach_f234` |
+| classification-only baseline | `[0,1,2,3,4]` | 40 / 8 | `["--full_eval"]`, and `SCRIPT = "classification_baseline.py"` | `ILM_OPL_large_cls40` |
+| common field of view | `[0,1,2,3,4]` | 40 / 8 | `["--full_eval"]` with `FOV_MODE = "center3mm"` | `ILM_OPL_large_fov3_cv40` |
+
+Planning
+* Kaggle sessions are limited (about 9–12 h) and the weekly GPU quota is 30 h. Run the *timing run* first and read the minutes per fold from the output; if 5 folds do not fit into one session, split the folds over several versions with different `RUN_NAME` and put the unzipped folders together in one directory afterwards (`aggregate_folds.py` reads every `results_fold*.json` in a directory).
+* Results are comparable with the Mac runs in accuracy, not bit for bit (different hardware).
+* After downloading: unzip into `runs/`, then `python aggregate_folds.py runs/<RUN_NAME>`.
