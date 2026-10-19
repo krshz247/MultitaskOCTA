@@ -23,12 +23,14 @@ from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
 from sklearn.metrics import confusion_matrix
 from clDice.cldice_metric.cldice import clDice
 from eval_metrics import evaluate_loader, save_prediction_figure
+from augment_gpu import joint_augment
 import json
 
 
 matplotlib.use('Agg')
 
 LOSS_CFG = {}  # set from the command line in main()
+STRONG_AUG = [False]  # --strong_aug: affine + intensity + noise applied consistently to image and targets (no erasing)
 SCHEDULER = [None]  # per-iteration LR scheduler, set in main() when --scheduler is not 'none'
 IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
 
@@ -244,6 +246,8 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
         inputs = inputs.to(torch.float32).to(device)
         targets1, targets2 = targets1.to(torch.float32).to(device), targets2.to(torch.float32).to(device)
         targets3, targets4 = targets3.to(torch.float32).to(device), targets4.to(device)
+        if training and STRONG_AUG[0]:
+            inputs, targets1, targets2, targets3 = joint_augment(inputs, targets1, targets2, targets3)
         targets = [targets1, targets2, targets3, targets4]
 
         if training:
@@ -504,6 +508,10 @@ def main():
         model.to(device)
         logging.info(model)
 
+        STRONG_AUG[0] = args.strong_aug
+        if args.cls_dropout > 0:  # dropout on the pooled features before the classifier's linear layer (no new parameters)
+            model.module.clf_model.my_fc.register_forward_pre_hook(lambda m, inp: (torch.nn.functional.dropout(inp[0], args.cls_dropout, m.training),))
+
         # freezing the classifier layers till the startpoint
         for params in model.module.clf_model.parameters():
             params.requires_grad = False
@@ -514,10 +522,11 @@ def main():
         criterion = [
             torchmetrics.Dice().to(device),
             smp.losses.JaccardLoss("binary"),
-            torch.nn.CrossEntropyLoss(weight=class_weights)
+            torch.nn.CrossEntropyLoss(weight=class_weights, label_smoothing=args.label_smoothing)
         ]
 
-        optimizer = Adam([
+        _Opt = (lambda groups: torch.optim.AdamW(groups, weight_decay=args.weight_decay)) if args.weight_decay > 0 else Adam
+        optimizer = _Opt([
             {"params": model.module.seg_model.parameters(), "lr": args.LR_seg},
             {"params": model.module.clf_model.parameters(), "lr": args.LR_clf}
     ])
