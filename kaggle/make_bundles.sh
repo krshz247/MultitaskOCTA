@@ -8,6 +8,9 @@ cd "$(dirname "$0")/.."
 OUT=${1:-kaggle_upload}; RAW=$(cd "${2:-../OCTA500}" && pwd)
 mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
 git archive --format=zip --prefix=MultitaskOCTA/ -o "$OUT/multitaskocta_code.zip" HEAD
+# record the commit inside the bundle (the notebook has no git history): octa/common.py:git_commit() reads it and stores it with every run
+TMP=$(mktemp -d); mkdir "$TMP/MultitaskOCTA"; git rev-parse --short HEAD > "$TMP/MultitaskOCTA/GIT_COMMIT"
+(cd "$TMP" && zip -q "$OUT/multitaskocta_code.zip" MultitaskOCTA/GIT_COMMIT); rm -rf "$TMP"
 rm -f "$OUT/octa500_b5_subset.zip"
 (cd "$RAW" && zip -qr "$OUT/octa500_b5_subset.zip" \
   "OCTA_3mm/Projection Maps/OCTA(ILM_OPL)" "OCTA_6mm/Projection Maps/OCTA(ILM_OPL)" \

@@ -23,8 +23,11 @@ def git_commit():
         h = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=here, stderr=subprocess.DEVNULL).decode().strip()
         dirty = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=here, stderr=subprocess.DEVNULL).decode().strip()
         return h + ("-dirty" if dirty else "")
-    except Exception:
-        return "unknown"
+    except Exception:  # no git (e.g. a Kaggle bundle): kaggle/make_bundles.sh stores the commit in a GIT_COMMIT file
+        try:
+            return "bundle-" + open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "GIT_COMMIT")).read().strip()
+        except OSError:
+            return "unknown"
 
 
 def make_scheduler(optimizer, name, total_steps, peak_lrs, warmup_frac=0.1):
