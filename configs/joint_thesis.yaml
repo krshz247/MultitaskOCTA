@@ -1,0 +1,6 @@
+# Thesis training length: 100 epochs, classifier joins after epoch 20.
+base: joint_cv40.yaml
+name: joint_thesis100
+args:
+  num_epochs: 100
+  startpoint: 20

@@ -1,0 +1,4 @@
+# Classification-only ResNeSt50 (the thesis' "without segmentation" arm) under the same protocol.
+base: joint_cv40.yaml
+name: cls_cv40
+script: classification

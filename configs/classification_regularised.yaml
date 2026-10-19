@@ -1,0 +1,8 @@
+# Classification-only baseline with strong augmentation (incl. random erasing), label smoothing, dropout, AdamW.
+base: classification_baseline.yaml
+name: cls_cv40_reg
+args:
+  strong_aug: true
+  label_smoothing: 0.1
+  cls_dropout: 0.3
+  weight_decay: 0.01

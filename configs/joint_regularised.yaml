@@ -1,0 +1,9 @@
+# Joint model + regularisation for the small, imbalanced data set (extension, not in the thesis).
+# Mask-consistent affine / intensity / noise augmentation, label smoothing, classifier dropout, AdamW.
+base: joint_cv40.yaml
+name: joint_cv40_reg
+args:
+  strong_aug: true
+  label_smoothing: 0.1
+  cls_dropout: 0.3
+  weight_decay: 0.01

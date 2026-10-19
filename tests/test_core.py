@@ -3,6 +3,7 @@ import os, sys, unittest, collections, random
 import numpy as np, torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Preprocessing"))
+os.chdir(os.path.join(os.path.dirname(__file__), ".."))
 import warnings; warnings.filterwarnings("ignore")
 from faz_vessel_seg_cls import kfold_split, make_scheduler
 from dataset import random_rot_flip
@@ -88,6 +89,22 @@ class GroundTruthMaps(unittest.TestCase):
     def test_sdm_sign_convention(self):
         perim, _ = B.boundary_heatmap(self.m); s = B.signed_distance(self.m, perim)
         self.assertLess(s[30, 30], 0.5); self.assertGreater(s[2, 2], 0.5)  # inside < 0.5 < outside
+
+
+class Configs(unittest.TestCase):
+    def test_every_config_loads_and_inherits(self):
+        import glob, run_experiment as R
+        for f in glob.glob(os.path.join(os.path.dirname(__file__), "..", "configs", "*.yaml")):
+            cfg = R.load(f)
+            self.assertIn(cfg["script"], R.SCRIPTS); self.assertIn("paths", cfg); self.assertGreaterEqual(cfg["args"]["num_epochs"], 1)
+        reg = R.load(os.path.join(os.path.dirname(__file__), "..", "configs", "joint_regularised.yaml"))
+        self.assertTrue(reg["args"]["strong_aug"]); self.assertEqual(reg["args"]["batch_size"], 4)  # inherited from joint_cv40
+
+    def test_cli_and_override(self):
+        import run_experiment as R
+        self.assertEqual(R.cli({"a": 1, "flag": True, "off": False, "none": None, "xs": [1, 2]}), ["--a", "1", "--flag", "--xs", "1", "2"])
+        cfg = {"args": {"num_epochs": 40}}; R.set_override(cfg, "args.num_epochs=2"); R.set_override(cfg, "data.limit=30")
+        self.assertEqual(cfg, {"args": {"num_epochs": 2}, "data": {"limit": 30}})
 
 
 if __name__ == "__main__":

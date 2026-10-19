@@ -22,30 +22,58 @@ This project:
 
 ## Results
 
-All numbers below are from 5-fold cross-validation on the OCTA-500 superficial en-face images (see thesis for full discussion).
+Own results of this implementation, 5-fold cross-validation on the 364 labelled OCTA-500 scans (Normal / DR / AMD), B5 en-face projection,
+ground truth = GT_FAZ + GT_LargeVessel, 40 epochs per fold, test metrics at the best-validation epoch, mean ± std over folds
+(`configs/*.yaml`, single seed). The thesis numbers are **not** used as targets (see the note below the tables).
 
-**Segmentation** (Jaccard / Dice / clDice, %):
+**Segmentation** (per image, class-wise):
+
+| model | FAZ Dice | vessel Dice | vessel clDice | Dice incl. background* |
+|---|---|---|---|---|
+| joint RV + FAZ model (`joint_cv40`) | 0.926 ± 0.009 | 0.787 ± 0.011 | 0.857 ± 0.011 | 0.962 ± 0.003 |
+| + regularisation (`joint_regularised`) | 0.934 ± 0.013 | 0.790 ± 0.009 | 0.862 ± 0.006 | 0.962 ± 0.001 |
+| common field of view (`joint_common_fov`) | 0.933 ± 0.018 | 0.738 ± 0.012 | 0.826 ± 0.012 | 0.956 ± 0.003 |
+
+\* micro-average over the three channels including the background — the kind of number the thesis' Dice table most likely reports; it is dominated by the background and not comparable with the class-wise values.
+
+**Classification** (Normal / DR / AMD):
+
+| model | accuracy | balanced accuracy | macro-F1 | AMD recall |
+|---|---|---|---|---|
+| joint RV + FAZ model | 0.819 ± 0.036 | **0.763 ± 0.035** | **0.740 ± 0.038** | 0.63 |
+| joint + regularisation | 0.772 ± 0.074 | 0.747 ± 0.040 | 0.700 ± 0.035 | **0.72** |
+| classification-only ResNeSt50 | 0.799 ± 0.062 | 0.687 ± 0.068 | 0.689 ± 0.074 | 0.49 |
+| classification-only + regularisation | 0.786 ± 0.054 | 0.745 ± 0.069 | 0.706 ± 0.060 | 0.67 |
+| joint, common field of view | 0.813 ± 0.028 | 0.743 ± 0.085 | 0.708 ± 0.069 | 0.66 |
+| classification-only, common field of view | 0.805 ± 0.026 | 0.712 ± 0.027 | 0.688 ± 0.043 | 0.49 |
+
+**What the experiments say** (details, uncertainty and caveats in `docs/METHOD.md` and `OCTA_PROJECT_TRACKER.md`):
+- Segmentation of FAZ and large vessels is accurate and stable across folds (std ≈ 1 point); clDice is the metric that reflects vessel connectivity.
+- Classification is the weak part (≈ 0.75 balanced accuracy, large fold-to-fold spread, only ~50 AMD scans). The segmentation branches give **no measurable benefit once the classification-only baseline is regularised** (pooled out-of-fold accuracy difference +0.033, 95 % CI [−0.011, +0.080]); the joint model's advantage over the *plain* baseline is largely a regularisation effect.
+- The models do **not** rely on the field of view (6 mm scans hold 88 % of the AMD cases): removing the scale cue leaves the results unchanged. Vessel disconnection is not a disease cue the classifier relies on, although predicted vessel maps of diseased eyes are more fragmented because those images are harder.
+- Dense capillary labels (`GT_Capillary`) make the soft-clDice loss collapse to an all-vessel prediction; the thesis' large-vessel ground truth does not.
+
+<details><summary>Numbers reported in the thesis (not reproduced; metrics are defined differently, see docs/METHOD.md)</summary>
 
 | Method | Jaccard | Dice | clDice |
 |---|---|---|---|
 | DeepLabV3+ | 88.4 ± 2.2 | 92.5 ± 1.6 | 77.6 ± 2.7 |
 | UNet | 91.3 ± 1.5 | 97.1 ± 2.5 | 92.3 ± 1.9 |
-| UNet++ | 92.2 ± 1.6 | 97.4 ± 2.1 | **93.4 ± 2.5** |
-| **BSDA-Net (RV + FAZ, this work)** | **95.3 ± 1.7** | **98.1 ± 1.1** | 91.3 ± 2.4 |
-
-**Classification** (Healthy / DR / AMD, %):
+| UNet++ | 92.2 ± 1.6 | 97.4 ± 2.1 | 93.4 ± 2.5 |
+| BSDA-Net (RV + FAZ) | 95.3 ± 1.7 | 98.1 ± 1.1 | 91.3 ± 2.4 |
 
 | Method | Accuracy | Precision | Recall | F1 |
 |---|---|---|---|---|
 | ResNeSt50 (no segmentation) | 89.3 | 87.1 | 88.4 | 87.5 |
-| BSDA-Net (FAZ-only seg, original) | 94.1 | 95.4 | 96.2 | 95.3 |
-| **BSDA-Net (RV + FAZ, this work)** | **95.2** | 94.7 | 95.6 | **95.4** |
+| BSDA-Net (FAZ-only segmentation) | 94.1 | 95.4 | 96.2 | 95.3 |
+| BSDA-Net (RV + FAZ) | 95.2 | 94.7 | 95.6 | 95.4 |
+
+The thesis' classification accuracy (≈ 95 %) is far above what a leakage-free, class-stratified protocol gives here (≈ 0.80–0.82); one possible reason is that augmented copies of the same scan were split across train and test in the original pipeline (not verified).
+</details>
 
 <p align="center">
-  <img src="Figs/segmentation_results.png" alt="Segmentation comparison across DeepLabV3+, UNet, UNet++, and BSDA-Net against ground truth" width="600">
+  <img src="Figs/segmentation_results.png" alt="Segmentation comparison across DeepLabV3+, UNet, UNet++, and BSDA-Net against ground truth (thesis figure)" width="600">
 </p>
-
-**Takeaway:** adding vessel segmentation gives the best overall classification numbers, but the gain over FAZ-only BSDA-Net is modest — most of the headroom is eaten up by OCTA-500's small usable label set (364/500 scans) and severe class imbalance, not by the segmentation task itself. See the [Discussion](#full-thesis) section of the thesis for the full analysis.
 
 ## Repository structure
 
@@ -58,7 +86,8 @@ smp_model.py                   encoder / three decoders / classifier definitions
 eval_metrics.py                per-image Dice, Jaccard, clDice, topology and classification metrics
 aggregate_folds.py             mean ± std over folds at each fold's best-validation epoch
 plot_runs.py, eval_checkpoint.py, rename_tb_tags.py   curves, re-evaluation of a checkpoint, TensorBoard tag conversion
-run_cv.sh, run_sweep.sh        run all folds / compare configurations; sweep_status.sh, summarize_sweep.py
+run_experiment.py, configs/    run an experiment from a YAML file (all folds, builds the data on demand); run_cv.sh, run_sweep.sh: shell equivalents
+legacy/                        scripts of the original BSDA-Net code base, not part of the pipeline
 Preprocessing/build_processed_octa500.py   builds the training data from the raw OCTA-500 release
 analysis/                      FOV / biomarker baseline, vessel post-processing check
 tests/                         unit tests (python -m unittest discover -s tests)
@@ -82,6 +111,13 @@ python Preprocessing/build_processed_octa500.py --octa500 <OCTA500> --out Datase
 ```
 
 ## Usage
+
+```bash
+python run_experiment.py configs/joint_cv40.yaml          # 5 folds of the joint model; builds the dataset if missing, saves config.yaml + git commit
+python run_experiment.py configs/classification_baseline.yaml --folds 0 1 --dry-run   # see configs/README.md for all experiments
+```
+
+The same experiment by hand:
 
 ```bash
 D=Datasets/processed_OCTA500/ILM_OPL_large

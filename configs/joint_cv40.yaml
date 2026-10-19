@@ -1,0 +1,22 @@
+# Joint RV + FAZ segmentation and classification, thesis loss and hyper-parameters, 40-epoch cross-validation
+# (the setting of the reported 5-fold results; use joint_thesis.yaml for the thesis' 100 epochs).
+name: joint_cv40
+script: joint                    # joint = faz_vessel_seg_cls.py, classification = classification_baseline.py
+paths:
+  data_root: Datasets/processed_OCTA500
+  raw_octa500: ../OCTA500
+  runs_dir: runs
+data:                            # Preprocessing/build_processed_octa500.py
+  projection: ILM_OPL            # B5 superficial (FULL = B4, OPL_BM = B6 deep)
+  vessel: large                  # GT_LargeVessel (large_capillary = + GT_Capillary, dense)
+  fov_mode: native               # center3mm = common field of view (central 3 mm of every scan)
+args:                            # every key is passed to the training script as --key value
+  num_folds: 5
+  num_epochs: 40
+  startpoint: 8                  # classifier joins the loss after this epoch (thesis: 20 of 100)
+  batch_size: 4
+  val_batch_size: 4
+  LR_seg: 1.0e-4
+  LR_clf: 2.0e-5
+  eval_every: 3
+  full_eval: true                # evaluate every validation / test scan

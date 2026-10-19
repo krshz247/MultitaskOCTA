@@ -18,7 +18,9 @@ faz_vessel_seg_cls.py --fold k   (train: dataset.py + losses.py + smp_model.py; 
 aggregate_folds.py (mean ± std over folds) · plot_runs.py (curves) · eval_checkpoint.py (re-evaluate a checkpoint)
 ```
 
-Reference command (thesis setup, one fold):
+Every experiment is described by a YAML file in `configs/` and started with `python run_experiment.py configs/<file>.yaml` (all folds, builds the data on demand, stores `config.yaml` and the git commit with the results).
+
+Reference command (thesis setup, one fold, without the launcher):
 ```bash
 python Preprocessing/build_processed_octa500.py --octa500 ../OCTA500 --out Datasets/processed_OCTA500/ILM_OPL_large --projection ILM_OPL --vessel large
 D=Datasets/processed_OCTA500/ILM_OPL_large

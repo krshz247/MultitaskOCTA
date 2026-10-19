@@ -1,0 +1,5 @@
+# Test of the field-of-view shortcut: every scan shows the central 3 mm x 3 mm at the same pixel size.
+base: joint_cv40.yaml
+name: joint_cv40_commonfov
+data:
+  fov_mode: center3mm
