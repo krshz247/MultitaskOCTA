@@ -20,7 +20,8 @@ import torchvision.models as models
 import numpy as np
 import matplotlib
 from sklearn.metrics import cohen_kappa_score
-from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
+from smp_model import my_get_encoder, MyMultibranchModel
+from smp_model_legacy import MyUnetModel
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 # torch.backends.cuda.matmul.allow_tf32 = True

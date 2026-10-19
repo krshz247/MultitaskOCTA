@@ -21,7 +21,8 @@ from losses import FAZ_multiLoss
 import numpy as np
 import matplotlib
 from sklearn.metrics import cohen_kappa_score
-from smp_model import MyUnetModel, my_get_encoder, MyMultibranchModel
+from smp_model import my_get_encoder, MyMultibranchModel
+from smp_model_legacy import MyUnetModel
 from sklearn.metrics import confusion_matrix
 
 IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
