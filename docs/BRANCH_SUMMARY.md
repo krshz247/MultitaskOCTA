@@ -25,7 +25,7 @@ opened yet.** `git log master..HEAD` lists 36 commits; `docs/METHOD.md` is the r
 `--scheduler`, `--strong_aug` (mask-consistent), `--label_smoothing`, `--cls_dropout`, `--weight_decay`, `--vessel_bce`, `--exclusion`, `--aux_channels faz`,
 `--cldice_alpha`, `--vessel_weight`, `--stratify_fov`, `--bg_dice 0`, builder options `--projection`, `--vessel`, `--fov_mode`.
 
-## Experiments and findings (full detail: `OCTA_PROJECT_TRACKER.md`, kept outside the repository)
+## Experiments and findings (full detail in the author's local experiment log, which is not part of the repository)
 Segmentation is accurate and stable; the segmentation branches bring no measurable classification benefit once the baseline is regularised; the field of view is not
 what the networks use; vessel disconnection is not a disease cue; dense capillary labels make soft-clDice collapse; clDice share 0.8 breaks training; dropping fragments < 30 px
 repairs connectivity metrics for free. Thesis numbers are not treated as targets.

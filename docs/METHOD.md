@@ -38,7 +38,7 @@ Every run stores its arguments and the git commit in `results_fold<k>.json`.
 | Labels used | `GT_FAZ` and `GT_LargeVessel` (user's original ground truth). `GT_Capillary` already contains the large vessels (checked on all 500 scans) and is an optional dense variant (`--vessel large_capillary`) |
 | Classes | Normal / DR / AMD from `Text labels`; CNV, CSC and other diseases (136 scans) are excluded → **364 scans** |
 
-Class × field-of-view counts (important confound, see `OCTA_PROJECT_TRACKER.md`):
+Class × field-of-view counts (important confound: the classifier could use the field of view as a shortcut; tested, see README):
 
 | | 3 mm | 6 mm | share at 6 mm |
 |---|---|---|---|

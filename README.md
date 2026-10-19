@@ -47,7 +47,7 @@ ground truth = GT_FAZ + GT_LargeVessel, 40 epochs per fold, test metrics at the 
 | joint, common field of view | 0.813 ± 0.028 | 0.743 ± 0.085 | 0.708 ± 0.069 | 0.66 |
 | classification-only, common field of view | 0.805 ± 0.026 | 0.712 ± 0.027 | 0.688 ± 0.043 | 0.49 |
 
-**What the experiments say** (details, uncertainty and caveats in `docs/METHOD.md` and `OCTA_PROJECT_TRACKER.md`):
+**What the experiments say** (details, uncertainty and caveats in `docs/METHOD.md`):
 - Segmentation of FAZ and large vessels is accurate and stable across folds (std ≈ 1 point); clDice is the metric that reflects vessel connectivity.
 - Classification is the weak part (≈ 0.75 balanced accuracy, large fold-to-fold spread, only ~50 AMD scans). The segmentation branches give **no measurable benefit once the classification-only baseline is regularised** (pooled out-of-fold accuracy difference +0.033, 95 % CI [−0.011, +0.080]); the joint model's advantage over the *plain* baseline is largely a regularisation effect.
 - The models do **not** rely on the field of view (6 mm scans hold 88 % of the AMD cases): removing the scale cue leaves the results unchanged. Vessel disconnection is not a disease cue the classifier relies on, although predicted vessel maps of diseased eyes are more fragmented because those images are harder.
