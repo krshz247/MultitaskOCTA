@@ -385,6 +385,9 @@ def create_train_arg_parser():
     parser.add_argument("--cls_dropout", type=float, default=0.0, help="classification-only baseline: dropout before the linear layer.")
     parser.add_argument("--weight_decay", type=float, default=0.0, help="classification-only baseline: > 0 switches Adam to AdamW with this weight decay.")
     parser.add_argument("--strong_aug", action="store_true", help="classification-only baseline: random affine + intensity + noise + erasing on top of the rotations/flips.")
+    parser.add_argument("--seg_loss_weights", type=float, nargs=3, default=[3.0, 1.0, 1.0], help="lambda_1 (segmentation), lambda_2 (boundary heatmap), lambda_3 (SDM); thesis 3 1 1. 0 0 0 trains the segmentation network without any segmentation supervision.")
+    parser.add_argument("--detach_clf_features", action="store_true", help="ablation: stop-gradient on the decoder features fed to the classifier.")
+    parser.add_argument("--shuffle_masks", action="store_true", help="control: give every training image the masks of a different training scan.")
     parser.add_argument("--num_folds", type=int, default=5, help="Stratified k-fold cross-validation (thesis: 5). 0 or 1 = legacy percentage split.")
     parser.add_argument("--augmentation", type=str, default=True, help="using data augmentation.")
     return parser

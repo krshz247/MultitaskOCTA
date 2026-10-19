@@ -30,6 +30,7 @@ import json
 matplotlib.use('Agg')
 
 LOSS_CFG = {}  # set from the command line in main()
+DETACH_CLF = [False]  # --detach_clf_features
 STRONG_AUG = [False]  # --strong_aug: affine + intensity + noise applied consistently to image and targets (no erasing)
 SCHEDULER = [None]  # per-iteration LR scheduler, set in main() when --scheduler is not 'none'
 IN_MODELS = ['unet_smp', 'unet++', 'manet', 'linknet', 'fpn', 'pspnet', 'pan', 'deeplabv3', 'deeplabv3+']
@@ -258,7 +259,10 @@ def seg_clf_iteration(epoch, model, optimizer, criterion, data_loader, device, l
             seg_outputs = [seg_outputs]
 
         seg_preds = torch.round(torch.sigmoid(seg_outputs[0]))  # seg head outputs logits
-        clf_outputs = model.module.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
+        clf_feats = seg_outputs[3:6]
+        if DETACH_CLF[0]:  # --detach_clf_features: the classifier sees the decoder features but its loss does not train the segmentation network
+            clf_feats = [[f.detach() for f in fs] for fs in clf_feats]
+        clf_outputs = model.module.clf_forward(inputs, *clf_feats)
 
         dice_criterion, jaccard_criterion, clf_criterion = criterion[0], criterion[1], criterion[2]
 
@@ -509,6 +513,7 @@ def main():
         logging.info(model)
 
         STRONG_AUG[0] = args.strong_aug
+        DETACH_CLF[0] = args.detach_clf_features
         if args.cls_dropout > 0:  # dropout on the pooled features before the classifier's linear layer (no new parameters)
             model.module.clf_model.my_fc.register_forward_pre_hook(lambda m, inp: (torch.nn.functional.dropout(inp[0], args.cls_dropout, m.training),))
 
@@ -563,6 +568,9 @@ def main():
             test_gt_names = glob.glob(os.path.join(args.test_path, "*.png"))
             random.shuffle(val_file_names)
 
+        if args.shuffle_masks:  # control: every training image gets the ground truth of another training scan (segmentation supervision carries no information about the image)
+            _g = list(train_gt_names); random.Random(2021 + args.fold).shuffle(_g); train_gt_names = _g
+            logging.info("training masks shuffled across scans")
         trainLoader, devLoader, testLoader = generate_dataset(train_img_names, val_img_names, test_img_names, args.input_size, args.batch_size, args.val_batch_size, args.distance_type, args.clahe, args.train_type, train_gt_names, val_gt_names, test_gt_names, num_workers=args.num_workers, full_eval=args.full_eval)
 
         epoch_start = 0
@@ -571,7 +579,7 @@ def main():
             SCHEDULER[0] = make_scheduler(optimizer, args.scheduler, total_steps, [args.LR_seg, args.LR_clf], args.warmup_frac)
         max_dice = 0.8
         max_acc = 0.6
-        loss_weights = [3, 1, 1]
+        loss_weights = list(args.seg_loss_weights)  # lambda_1, lambda_2, lambda_3 (thesis: 3 1 1)
         logging.info(loss_weights)
         startpoint = args.startpoint
         LOSS_CFG.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice, cldice_alpha=args.cldice_alpha, vessel_weight=args.vessel_weight)
