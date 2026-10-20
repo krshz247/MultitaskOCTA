@@ -1,0 +1,13 @@
+
+variant                                accuracy           balanced acc               macro-F1
+A_mac_R1                 0.772 [0.728,0.816] 0.747 [0.688,0.809] 0.705 [0.650,0.759]
+A_kaggle_s1              0.797 [0.755,0.838] 0.758 [0.700,0.812] 0.720 [0.663,0.772]
+B_mac_R3                 0.805 [0.764,0.846] 0.762 [0.703,0.818] 0.731 [0.674,0.783]
+B_kaggle_s1              0.717 [0.670,0.761] 0.659 [0.598,0.720] 0.618 [0.559,0.671]
+plain_mac                0.786 [0.744,0.827] 0.747 [0.685,0.801] 0.708 [0.652,0.757]
+
+paired differences to A_mac_R1 (pooled out-of-fold, 364 scans, 95 % bootstrap interval; McNemar on the correct/incorrect decisions)
+A_kaggle_s1              acc +0.025 [-0.025,+0.074]  bal-acc +0.010 [-0.052,+0.074]  F1 +0.015 [-0.045,+0.075]  McNemar p=0.374 (only A_kaggle_s1 right 45, only A_mac_R1 right 36)
+B_mac_R3                 acc +0.033 [-0.014,+0.077]  bal-acc +0.015 [-0.053,+0.081]  F1 +0.026 [-0.032,+0.085]  McNemar p=0.195 (only B_mac_R3 right 42, only A_mac_R1 right 30)
+B_kaggle_s1              acc -0.055 [-0.107,+0.000]  bal-acc -0.088 [-0.160,-0.017]  F1 -0.087 [-0.151,-0.023]  McNemar p=0.062 (only B_kaggle_s1 right 42, only A_mac_R1 right 62)
+plain_mac                acc +0.014 [-0.030,+0.058]  bal-acc -0.000 [-0.065,+0.059]  F1 +0.003 [-0.053,+0.055]  McNemar p=0.635 (only plain_mac right 38, only A_mac_R1 right 33)

@@ -8,18 +8,17 @@ The thesis numbers are not used as targets; the method is re-tested on its own p
 ## Question
 Does the joint model classify better *because* it has learned FAZ/vessel segmentation, as the thesis argues?
 
-## What was found (single training run per variant; seed repeats are running on Kaggle)
+## What was found (one or two training runs per variant; seed repeats are running on Kaggle)
 | | balanced accuracy (pooled out-of-fold, 95 % interval) |
 |---|---|
-| joint model, regularised | 0.747 [0.688, 0.809] |
-| same, but trained on shuffled masks (no valid segmentation information) | 0.762 [0.703, 0.818] |
+| joint model, regularised | 0.747 [0.688, 0.809] (Mac run) · 0.758 [0.700, 0.812] (Kaggle, seed 1) |
+| same, but trained on shuffled masks (no valid segmentation information) | 0.762 [0.703, 0.818] (Mac run) · **0.659 [0.598, 0.720]** (Kaggle, seed 1) |
 | classification-only ResNeSt50, same regularisation | 0.747 [0.685, 0.801] |
 | joint, classifier gradient stopped at the decoder features | 0.658 [0.597, 0.722] |
 | joint, segmentation loss switched off | 0.684 [0.624, 0.741] |
 
 1. **Segmentation works** (FAZ Dice 0.93, vessel Dice 0.79, clDice 0.86, std ≈ 1 point across folds).
-2. **Classification is ≈ 0.75 balanced accuracy and the segmentation content does not explain it.** Shuffled masks give the same result as correct masks; a plain regularised classifier is not different
-   (paired difference −0.000 [−0.065, +0.059]). Removing the segmentation loss or the end-to-end coupling makes it clearly worse, i.e. the auxiliary losses act as a regulariser, whatever their content.
+2. **Classification is ≈ 0.75 balanced accuracy; whether the segmentation content matters is not settled.** A plain regularised classifier is not different from the joint model (paired difference −0.000 [−0.065, +0.059]), so segmentation brings no measurable gain over regularisation alone. The joint model reproduces on a second run (0.747 and 0.758). The shuffled-mask control does not: 0.762 in the first run, 0.659 in the second (different seed and machine) — a 10-point swing for the same recipe, so "shuffled masks = correct masks" cannot be claimed until the seed repeats are in. Removing the segmentation loss or the end-to-end coupling gave 0.68 and 0.66 in single runs, which is within the range the shuffled-mask recipe has now shown.
 3. **Segmentation-derived measures are weak on their own**: FAZ and vessel biomarkers from perfect masks reach ≈ 0.6 balanced accuracy, from predicted masks the same, and adding them to the CNN probabilities does not improve them
    (checked for the thesis-setting model and the regularised model).
 4. **Field of view**: 6 mm scans hold 88 % of the AMD cases. Training on a common 3 mm field of view gives results within noise of the native-field-of-view runs, so the model does not need the scale cue. Attention maps of the joint model concentrate on the fovea/FAZ (12–26× the area share), those of the classification-only network are more diffuse and more often off-centre; DR scans receive more peripheral attention.
