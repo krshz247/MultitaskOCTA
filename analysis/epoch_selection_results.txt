@@ -1,0 +1,57 @@
+
+=== A_joint_reg: 3 run(s) — test metrics, mean over folds per rule (group mean ± sd over runs)
+rule          balanced_acc         f1_macro              acc       recall_amd         faz_dice      vessel_dice
+current   0.763±0.021      0.715±0.016      0.788±0.014      0.733±0.054      0.916±0.025      0.790±0.004     
+val_f1    0.746±0.027      0.714±0.021      0.797±0.014      0.698±0.060      0.901±0.048      0.778±0.004     
+val_bal   0.753±0.022      0.687±0.024      0.745±0.024      0.778±0.048      0.908±0.032      0.782±0.004     
+last      0.734±0.023      0.677±0.018      0.738±0.029      0.754±0.022      0.919±0.024      0.773±0.008     
+fixed30   0.740±0.022      0.686±0.022      0.770±0.018      0.661±0.114      0.905±0.043      0.788±0.013     
+last3     0.729±0.018      0.670±0.019      0.734±0.026      0.740±0.022      0.911±0.021      0.778±0.007     
+oracle    0.795±0.012      0.728±0.012      0.776±0.016      0.881±0.024      0.909±0.033      0.782±0.007     
+  ILM_OPL_large_cv40reg              balanced acc by rule: current 0.747  val_f1 0.763  val_bal 0.737  last 0.745  fixed30 0.733  last3 0.736  oracle 0.797   | val-test Spearman (macro-F1 over epochs) 0.85, chosen epochs [39, 39, 27, 39, 40]
+  ILM_OPL_large_cv40reg_s1           balanced acc by rule: current 0.755  val_f1 0.715  val_bal 0.744  last 0.707  fixed30 0.723  last3 0.708  oracle 0.782   | val-test Spearman (macro-F1 over epochs) 0.82, chosen epochs [21, 30, 30, 27, 39]
+  ILM_OPL_large_cv40reg_s2           balanced acc by rule: current 0.787  val_f1 0.759  val_bal 0.778  last 0.750  fixed30 0.765  last3 0.743  oracle 0.806   | val-test Spearman (macro-F1 over epochs) 0.76, chosen epochs [39, 33, 39, 36, 36]
+
+=== B_shuffled_masks: 2 run(s) — test metrics, mean over folds per rule (group mean ± sd over runs)
+rule          balanced_acc         f1_macro              acc       recall_amd         faz_dice      vessel_dice
+current   0.713±0.067      0.677±0.076      0.762±0.060      0.634±0.228      0.677±0.000      0.149±0.001     
+val_f1    0.727±0.040      0.697±0.048      0.773±0.052      0.694±0.058      0.648±0.009      0.149±0.001     
+val_bal   0.741±0.017      0.690±0.064      0.751±0.091      0.737±0.090      0.651±0.010      0.149±0.001     
+last      0.738±0.039      0.676±0.041      0.739±0.039      0.754±0.058      0.634±0.038      0.148±0.000     
+fixed30   0.675±0.002      0.628±0.020      0.706±0.038      0.621±0.046      0.654±0.019      0.149±0.000     
+last3     0.720±0.017      0.657±0.045      0.722±0.065      0.744±0.025      0.645±0.027      0.148±0.000     
+oracle    0.770±0.023      0.699±0.060      0.751±0.083      0.867±0.019      0.651±0.015      0.149±0.000     
+  ILM_OPL_large_cv40reg_shufmask     balanced acc by rule: current 0.761  val_f1 0.755  val_bal 0.753  last 0.766  fixed30 0.676  last3 0.732  oracle 0.786   | val-test Spearman (macro-F1 over epochs) 0.87, chosen epochs [27, 30, 39, 33, 33]
+  ILM_OPL_large_cv40reg_shufmask_s1  balanced acc by rule: current 0.666  val_f1 0.698  val_bal 0.729  last 0.711  fixed30 0.673  last3 0.708  oracle 0.753   | val-test Spearman (macro-F1 over epochs) 0.78, chosen epochs [30, 18, 30, 40, 40]
+
+=== C_plain_reg: 2 run(s) — test metrics, mean over folds per rule (group mean ± sd over runs)
+rule          balanced_acc         f1_macro              acc       recall_amd         faz_dice      vessel_dice
+current   0.750±0.007      0.730±0.034      0.809±0.033      0.630±0.055          nan±nan          nan±nan     
+val_f1    0.750±0.007      0.730±0.034      0.809±0.033      0.630±0.055          nan±nan          nan±nan     
+val_bal   0.769±0.000      0.732±0.015      0.801±0.014      0.714±0.061          nan±nan          nan±nan     
+last      0.745±0.032      0.737±0.009      0.825±0.014      0.579±0.156          nan±nan          nan±nan     
+fixed30   0.742±0.014      0.722±0.027      0.798±0.045      0.619±0.096          nan±nan          nan±nan     
+last3     0.736±0.002      0.723±0.009      0.813±0.016      0.556±0.007          nan±nan          nan±nan     
+oracle    0.821±0.005      0.776±0.008      0.827±0.008      0.856±0.060          nan±nan          nan±nan     
+  ILM_OPL_large_cls40reg             balanced acc by rule: current 0.745  val_f1 0.745  val_bal 0.768  last 0.723  fixed30 0.752  last3 0.737  oracle 0.824   | val-test Spearman (macro-F1 over epochs) 0.37, chosen epochs [36, 27, 12, 33, 21]
+  ILM_OPL_large_cls40reg_s1          balanced acc by rule: current 0.754  val_f1 0.754  val_bal 0.769  last 0.768  fixed30 0.731  last3 0.735  oracle 0.818   | val-test Spearman (macro-F1 over epochs) 0.38, chosen epochs [40, 33, 24, 24, 33]
+
+=== R2_stop_gradient: 1 run(s) — test metrics, mean over folds per rule (group mean ± sd over runs)
+rule          balanced_acc         f1_macro              acc       recall_amd         faz_dice      vessel_dice
+current    0.656            0.623            0.722            0.529            0.936            0.786          
+val_f1     0.649            0.617            0.714            0.589            0.931            0.774          
+val_bal    0.667            0.628            0.717            0.589            0.932            0.774          
+last       0.711            0.645            0.720            0.676            0.940            0.786          
+fixed30    0.676            0.636            0.720            0.676            0.930            0.775          
+last3      0.688            0.637            0.722            0.644            0.936            0.778          
+oracle     0.751            0.676            0.733            0.816            0.937            0.775          
+
+=== R4_no_seg_loss: 1 run(s) — test metrics, mean over folds per rule (group mean ± sd over runs)
+rule          balanced_acc         f1_macro              acc       recall_amd         faz_dice      vessel_dice
+current    0.682            0.629            0.692            0.689            0.050            0.109          
+val_f1     0.710            0.658            0.728            0.729            0.050            0.101          
+val_bal    0.698            0.619            0.662            0.773            0.050            0.105          
+last       0.695            0.609            0.643            0.813            0.050            0.106          
+fixed30    0.640            0.552            0.646            0.713            0.049            0.101          
+last3      0.688            0.629            0.688            0.739            0.049            0.105          
+oracle     0.739            0.667            0.714            0.789            0.047            0.104          
