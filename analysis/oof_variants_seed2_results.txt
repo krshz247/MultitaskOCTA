@@ -1,0 +1,17 @@
+
+variant                                accuracy           balanced acc               macro-F1
+A_s1                     0.797 [0.755,0.838] 0.758 [0.700,0.812] 0.720 [0.663,0.772]
+A_s2                     0.794 [0.753,0.835] 0.789 [0.736,0.841] 0.733 [0.678,0.783]
+A_mac                    0.772 [0.728,0.816] 0.747 [0.688,0.809] 0.705 [0.650,0.759]
+B_s1                     0.717 [0.670,0.761] 0.659 [0.598,0.720] 0.618 [0.559,0.671]
+B_mac                    0.805 [0.764,0.846] 0.762 [0.703,0.818] 0.731 [0.674,0.783]
+plain_s1                 0.835 [0.794,0.871] 0.762 [0.703,0.822] 0.764 [0.708,0.817]
+plain_mac                0.786 [0.744,0.827] 0.747 [0.685,0.801] 0.708 [0.652,0.757]
+
+paired differences to A_s1 (pooled out-of-fold, 364 scans, 95 % bootstrap interval; McNemar on the correct/incorrect decisions)
+A_s2                     acc -0.003 [-0.047,+0.039]  bal-acc +0.032 [-0.024,+0.085]  F1 +0.013 [-0.040,+0.064]  McNemar p=1.000 (only A_s2 right 31, only A_s1 right 32)
+A_mac                    acc -0.025 [-0.074,+0.025]  bal-acc -0.010 [-0.074,+0.052]  F1 -0.015 [-0.075,+0.045]  McNemar p=0.374 (only A_mac right 36, only A_s1 right 45)
+B_s1                     acc -0.080 [-0.132,-0.030]  bal-acc -0.099 [-0.172,-0.026]  F1 -0.102 [-0.169,-0.037]  McNemar p=0.003 (only B_s1 right 30, only A_s1 right 59)
+B_mac                    acc +0.008 [-0.041,+0.058]  bal-acc +0.004 [-0.067,+0.074]  F1 +0.011 [-0.056,+0.077]  McNemar p=0.822 (only B_mac right 41, only A_s1 right 38)
+plain_s1                 acc +0.038 [-0.008,+0.080]  bal-acc +0.004 [-0.063,+0.069]  F1 +0.044 [-0.020,+0.102]  McNemar p=0.098 (only plain_s1 right 38, only A_s1 right 24)
+plain_mac                acc -0.011 [-0.060,+0.036]  bal-acc -0.011 [-0.088,+0.058]  F1 -0.012 [-0.079,+0.051]  McNemar p=0.728 (only plain_mac right 35, only A_s1 right 39)
