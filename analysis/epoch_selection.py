@@ -13,7 +13,7 @@ Reported: mean over the 5 folds of each test metric, per run; then mean and sd o
 Also: Spearman correlation between validation and test macro-F1 across the epochs of a fold (how informative is the validation fold?).
 Usage: python analysis/epoch_selection.py --group A_joint RUN RUN ... --group C_plain RUN ...
 """
-import argparse, glob, json, os, statistics as st, sys
+import argparse, glob, json, os, sys
 import numpy as np
 from scipy.stats import spearmanr
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))

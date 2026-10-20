@@ -14,6 +14,8 @@ Result files are written next to the scripts (`*.txt` = printed report, committe
 | `connectivity_vs_class.py` | Is vessel fragmentation of the predicted maps related to the disease class? | joint run | `connectivity_results.json` |
 | `oof_compare.py` | Pooled out-of-fold comparison of the joint and the classification-only model (bootstrap interval, McNemar, flip TTA); stores `oof_probs.npz` | two runs | `oof_probs.npz` |
 | `oof_variants.py` | The same for any number of variants against a reference | runs | `oof_variants_reg_results.txt` (R1–R4 and plain regularised) |
+| `epoch_selection.py` | How much does the rule that picks the reported epoch matter (pipeline score, validation F1 / balanced accuracy, last epoch, fixed epoch, mean of the last evaluations, oracle)? Uses the per-epoch records in `results_fold*.json` | runs | `epoch_selection_results.txt` |
+| `ensemble_runs.py` | Do repeats of a recipe make the same mistakes (agreement between runs), and what does averaging 2–3 runs give? Caches out-of-fold probabilities as `<run>/oof_probs.npy` | runs | `ensemble_runs_results.txt` |
 | `power_seeds.py` | How large must a difference be to be detectable, and what do seed repeats buy? | `oof_probs.npz` | `power_seeds_results.txt` |
 | `postprocess_vessels.py` | Does removing small vessel fragments change the metrics? | joint run | printed |
 

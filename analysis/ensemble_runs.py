@@ -8,7 +8,7 @@ Usage: python analysis/ensemble_runs.py --data Datasets/processed_OCTA500/ILM_OP
 """
 import argparse, glob, io, contextlib, itertools, json, os, sys, warnings
 import numpy as np, cv2, torch
-from sklearn.metrics import balanced_accuracy_score, accuracy_score, f1_score
+from sklearn.metrics import balanced_accuracy_score, accuracy_score
 from torch import nn
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
