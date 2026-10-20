@@ -25,3 +25,4 @@ __pycache__/
 
 # golden regression files must be tracked
 !tests/golden/*.json
+/weights/

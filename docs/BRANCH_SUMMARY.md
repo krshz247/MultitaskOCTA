@@ -1,8 +1,9 @@
 # Branch `fix/thesis-consistency` — summary for review
 
 Makes the repository runnable on current hardware (Apple Silicon / CPU / CUDA), fixes bugs that made the training objective differ
-from the method described in the thesis, adds a leakage-free evaluation protocol and the experiments around it. **Not pushed / no PR
-opened yet.** `git log master..HEAD` lists 36 commits; `docs/METHOD.md` is the reference for how the code implements the thesis.
+from the method described in the thesis, adds a leakage-free evaluation protocol and the experiments around it. The branch is pushed to `origin`
+and is the repository's default branch; `master` (the thesis-time code) is untouched and nothing was merged into it. `docs/METHOD.md` is the reference for how the code
+implements the thesis, `docs/SUMMARY_FOR_SUPERVISORS.md` for what the experiments show, `docs/MODEL_CARD.md` for the released model.
 
 ## Bug fixes (change what is trained)
 * **clDice term was always zero and then overwritten** (`octa/losses.py`): the vendored soft-clDice sliced `[:, 1:]` on a single channel, and the
@@ -25,13 +26,19 @@ opened yet.** `git log master..HEAD` lists 36 commits; `docs/METHOD.md` is the r
 `--scheduler`, `--strong_aug` (mask-consistent), `--label_smoothing`, `--cls_dropout`, `--weight_decay`, `--vessel_bce`, `--exclusion`, `--aux_channels faz`,
 `--cldice_alpha`, `--vessel_weight`, `--stratify_fov`, `--bg_dice 0`, builder options `--projection`, `--vessel`, `--fov_mode`.
 
-## Experiments and findings (full detail in the author's local experiment log, which is not part of the repository)
-Segmentation is accurate and stable; the segmentation branches bring no measurable classification benefit once the baseline is regularised; the field of view is not
-what the networks use; vessel disconnection is not a disease cue; dense capillary labels make soft-clDice collapse; clDice share 0.8 breaks training; dropping fragments < 30 px
-repairs connectivity metrics for free. Thesis numbers are not treated as targets.
+## Experiments and findings (single-page version: `docs/SUMMARY_FOR_SUPERVISORS.md`; scripts and reports: `analysis/`)
+Segmentation is accurate and stable (FAZ Dice ≈ 0.93, vessel Dice ≈ 0.79, clDice ≈ 0.86). Each of the three main recipes (joint model, joint model on shuffled masks, plain classifier,
+all regularised) was trained three times: classification reaches ≈ 0.75–0.77 balanced accuracy and the three are equal within the run-to-run spread (about ±0.03), so the segmentation tasks
+bring **no measurable classification benefit**; the auxiliary losses act as a regulariser. The choice of the reported epoch matters (the pipeline score uses segmentation metrics that are meaningless for the
+shuffled-mask variant), so classification comparisons are also given under one classification-only rule. The field of view is not what the networks use, though both are sensitive to the image frame;
+vessel disconnection is not a disease cue; dense capillary labels make soft-clDice collapse; clDice share 0.8 breaks training; dropping fragments < 30 px repairs connectivity metrics for free.
+Thesis numbers are not treated as targets.
+
+## Inference
+`octa/predict.py`: image in, class probabilities and FAZ / vessel masks out (average of the five fold models); `docs/MODEL_CARD.md` describes the model, its data and its limits.
 
 ## Review checklist
-* `python -m unittest discover -s tests` (13 tests) — passes.
+* `python -m unittest discover -s tests` (29 tests; `SKIP_SLOW_TESTS=1` for the fast ones) — passes; CI (`.github/workflows/tests.yml`) runs lint and the fast tests.
 * `python run_experiment.py configs/joint_cv40.yaml --dry-run` prints the commands.
-* Files of interest: `octa/losses.py`, `octa/joint_training.py`, `octa/metrics.py`, `octa/data/augment.py`, `Preprocessing/build_processed_octa500.py`, `docs/METHOD.md`.
+* Files of interest: `octa/losses.py`, `octa/joint_training.py`, `octa/metrics.py`, `octa/data/augment.py`, `octa/predict.py`, `Preprocessing/build_processed_octa500.py`, `docs/METHOD.md`.
 * Large artefacts (`runs*/`, `Datasets/`, `kaggle_upload/`, virtual environments) are git-ignored.
