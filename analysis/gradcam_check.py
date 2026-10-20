@@ -91,7 +91,7 @@ for nm in ("joint", "cls"):
             out[f"{nm}/{CN[c]}/{fn}"] = {"n": len(sel), **{key: m(key) for key in ("band_share", "band_enrich", "faz_enrich", "ves_enrich", "centre50_enrich")}}
             print(f"{nm:6s} {CN[c]:10s} {fn:>4s} {len(sel):4d} {m('band_share'):17.3f} {m('band_enrich'):12.2f} {m('faz_enrich'):11.2f} {m('ves_enrich'):14.2f} {m('centre50_enrich'):16.2f}")
 print("\n(outer band = outside the central 70 % square, 51 % of the area; enrichment 1.0 = attention proportional to area)")
-print(f"\nborder ablation (out-of-fold, 364 scans): balanced accuracy / recall Normal, DR, AMD")
+print("\nborder ablation (out-of-fold, 364 scans): balanced accuracy / recall Normal, DR, AMD")
 for nm in ("joint", "cls"):
     for tag, lab in (("none", "unchanged"), ("band15", "outer 30 % replaced"), ("band30", "outer 60 % replaced (centre 40 % kept)")):
         p = pred[nm][tag]; rec = recall_score(y, p, average=None, labels=[0, 1, 2]); r3 = recall_score(y[fov == 1], p[fov == 1], average=None, labels=[0, 1, 2])
