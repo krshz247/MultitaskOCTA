@@ -8,17 +8,19 @@
 === B_shuffled
   single run ILM_OPL_large_cv40reg_shufmask       balanced acc 0.762  acc 0.805
   single run ILM_OPL_large_cv40reg_shufmask_s1    balanced acc 0.659  acc 0.717
-  mean single 0.710 | ensemble of 2 (mean over 1 pairs) 0.750
+  single run ILM_OPL_large_cv40reg_shufmask_s2    balanced acc 0.748  acc 0.786
+  mean single 0.723 | ensemble of 2 (mean over 3 pairs) 0.763 | ensemble of all 3: 0.781
 
 === C_plain
   single run ILM_OPL_large_cls40reg               balanced acc 0.747  acc 0.786
   single run ILM_OPL_large_cls40reg_s1            balanced acc 0.762  acc 0.835
-  mean single 0.754 | ensemble of 2 (mean over 1 pairs) 0.790
+  single run ILM_OPL_large_cls40reg_s2            balanced acc 0.771  acc 0.835
+  mean single 0.760 | ensemble of 2 (mean over 3 pairs) 0.781 | ensemble of all 3: 0.805
 
 agreement of hard predictions between two runs (fraction of the 364 scans with the same predicted class; mean over pairs)
   A_joint        vs A_joint        0.784  (3 pair(s))
-  A_joint        vs B_shuffled     0.742  (6 pair(s))
-  A_joint        vs C_plain        0.790  (6 pair(s))
-  B_shuffled     vs B_shuffled     0.764  (1 pair(s))
-  B_shuffled     vs C_plain        0.777  (4 pair(s))
-  C_plain        vs C_plain        0.824  (1 pair(s))
+  A_joint        vs B_shuffled     0.750  (9 pair(s))
+  A_joint        vs C_plain        0.795  (9 pair(s))
+  B_shuffled     vs B_shuffled     0.788  (3 pair(s))
+  B_shuffled     vs C_plain        0.781  (9 pair(s))
+  C_plain        vs C_plain        0.850  (3 pair(s))
