@@ -1,0 +1,31 @@
+
+model  true class  FOV    n  outer-band share  band enrich  FAZ enrich  vessel enrich  centre50 enrich
+joint  Normal      3mm  160             0.011         0.02       12.17           0.14             3.85
+joint  Normal      6mm   91             0.129         0.25       26.34           0.29             3.43
+joint  Normal      all  251             0.054         0.11       17.31           0.20             3.70
+joint  DR          3mm   29             0.184         0.36        4.48           0.59             2.50
+joint  DR          6mm   35             0.413         0.81       10.60           0.64             1.95
+joint  DR          all   64             0.309         0.60        7.83           0.62             2.20
+joint  AMD         3mm    6             0.013         0.02       11.82           0.20             3.77
+joint  AMD         6mm   43             0.127         0.25       21.08           0.31             3.37
+joint  AMD         all   49             0.113         0.22       19.95           0.30             3.42
+cls    Normal      3mm  160             0.142         0.28       10.64           0.47             3.13
+cls    Normal      6mm   91             0.194         0.38       14.08           0.57             2.80
+cls    Normal      all  251             0.161         0.31       11.89           0.51             3.01
+cls    DR          3mm   29             0.295         0.57        2.32           0.79             1.92
+cls    DR          6mm   35             0.445         0.87        3.33           0.92             1.34
+cls    DR          all   64             0.377         0.74        2.87           0.86             1.61
+cls    AMD         3mm    6             0.155         0.30        6.19           0.55             2.77
+cls    AMD         6mm   43             0.320         0.62        6.01           0.79             1.97
+cls    AMD         all   49             0.300         0.58        6.03           0.76             2.07
+
+(outer band = outside the central 70 % square, 51 % of the area; enrichment 1.0 = attention proportional to area)
+
+border ablation (out-of-fold, 364 scans): balanced accuracy / recall Normal, DR, AMD
+joint  unchanged                                0.747   0.79 0.73 0.71   (6 mm scans only: 0.64 0.57 0.79)
+joint  outer 30 % replaced                      0.396   0.72 0.41 0.06   (6 mm scans only: 0.71 0.37 0.07)
+joint  outer 60 % replaced (centre 40 % kept)   0.361   0.79 0.25 0.04   (6 mm scans only: 0.76 0.29 0.05)
+cls    unchanged                                0.747   0.82 0.75 0.67   (6 mm scans only: 0.62 0.63 0.74)
+cls    outer 30 % replaced                      0.638   0.60 0.50 0.82   (6 mm scans only: 0.47 0.20 0.88)
+cls    outer 60 % replaced (centre 40 % kept)   0.508   0.59 0.28 0.65   (6 mm scans only: 0.67 0.09 0.70)
+figure: analysis/figs/gradcam_amd_examples.png

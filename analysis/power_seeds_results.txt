@@ -1,0 +1,14 @@
+(1) scan sampling, n = 364: SE of one model's balanced accuracy 0.029; SE of the paired difference joint - classification-only 0.038
+    smallest difference detectable with 80 % power from scan sampling alone: 0.106
+
+(2) smallest detectable difference (balanced accuracy, 80 % power) from S seeds per variant, by training-noise sd per run (pooled out-of-fold)
+ S seeds  sd=0.010  sd=0.015  sd=0.020  sd=0.030
+       1       n/a       n/a       n/a       n/a
+       2     0.141     0.211     0.282     0.422
+       3     0.044     0.066     0.088     0.131
+       5     0.024     0.035     0.047     0.071
+       8     0.016     0.024     0.033     0.049
+      10     0.014     0.021     0.028     0.042
+
+observed so far (pooled out-of-fold, one run each): joint regularised 0.747, shuffled masks 0.762, classification-only 0.747 -> spread ~0.01;
+single folds differ by 5-9 points between two runs of the same recipe, which is why the pooled estimate is the one to use.

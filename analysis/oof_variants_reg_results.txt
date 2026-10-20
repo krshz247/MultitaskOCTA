@@ -1,0 +1,13 @@
+
+variant                                accuracy           balanced acc               macro-F1
+R1_joint_reg             0.772 [0.728,0.816] 0.747 [0.688,0.809] 0.705 [0.650,0.759]
+R3_shuffled_masks        0.805 [0.764,0.846] 0.762 [0.703,0.818] 0.731 [0.674,0.783]
+cls_reg                  0.786 [0.744,0.827] 0.747 [0.685,0.801] 0.708 [0.652,0.757]
+R2_detach                0.723 [0.676,0.769] 0.658 [0.597,0.722] 0.625 [0.566,0.682]
+R4_no_seg_loss           0.692 [0.646,0.736] 0.684 [0.624,0.741] 0.629 [0.573,0.681]
+
+paired differences to R1_joint_reg (pooled out-of-fold, 364 scans, 95 % bootstrap interval; McNemar on the correct/incorrect decisions)
+R3_shuffled_masks        acc +0.033 [-0.014,+0.077]  bal-acc +0.015 [-0.053,+0.081]  F1 +0.026 [-0.032,+0.085]  McNemar p=0.195 (only R3_shuffled_masks right 42, only R1_joint_reg right 30)
+cls_reg                  acc +0.014 [-0.030,+0.058]  bal-acc -0.000 [-0.065,+0.059]  F1 +0.003 [-0.053,+0.055]  McNemar p=0.635 (only cls_reg right 38, only R1_joint_reg right 33)
+R2_detach                acc -0.049 [-0.102,+0.000]  bal-acc -0.089 [-0.161,-0.022]  F1 -0.080 [-0.145,-0.019]  McNemar p=0.066 (only R2_detach right 34, only R1_joint_reg right 52)
+R4_no_seg_loss           acc -0.080 [-0.126,-0.030]  bal-acc -0.063 [-0.125,-0.004]  F1 -0.076 [-0.128,-0.025]  McNemar p=0.002 (only R4_no_seg_loss right 28, only R1_joint_reg right 57)

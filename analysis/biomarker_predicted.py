@@ -23,6 +23,7 @@ from octa.common import kfold_split
 from octa.data.dataset import mean_and_std
 
 ap = argparse.ArgumentParser(); ap.add_argument("--joint", required=True); ap.add_argument("--data", required=True)
+ap.add_argument("--out", default="analysis/biomarker_predicted_results.json")
 a = ap.parse_args()
 names = sorted(glob.glob(os.path.join(a.data, "image_surface", "*.bmp")))
 CLS = {"N": 0, "D": 1, "M": 2}; MM = {"3": 3.0, "6": 6.0}
@@ -101,4 +102,4 @@ print("\ncorrelation GT vs predicted-mask feature:", {FEATS[j]: round(float(corr
 lr = make_pipeline(StandardScaler(), LogisticRegression(max_iter=3000, class_weight="balanced", C=0.5)).fit(Xp, y)
 imp = np.abs(lr[-1].coef_).mean(0); order = np.argsort(-imp)[:6]
 print("largest |logistic coefficient| (predicted-mask features):", [(FEATS[j], round(float(imp[j]), 2)) for j in order])
-json.dump(rows, open("analysis/biomarker_predicted_results.json", "w"), indent=1)
+json.dump(rows, open(a.out, "w"), indent=1)
