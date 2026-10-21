@@ -12,3 +12,5 @@ and `legacy_utils.py` (helper functions that used to live in `utils.py`), `smp_m
 `PYTHONPATH=.:legacy python legacy/<script>.py`. Their import status is unchanged by the move: `faz_seg_cls`, `models`, `augmentation`,
 `legacy_utils` and `train_smp_y` import; `train_seg_clf`, `evaluate`, `classification` (missing `My_multiLoss`), `train_cls` (`resnest`),
 `train_smp` (`apex`), `basic_jointlearning` (`smp_model_basic`) and `criterion` (`surface_distance`) were already broken before the move.
+
+**Moved here on 2026-10-21 (root clean-up).** `old_runners/` holds the shell runners and sweep tools of the early pilots (`run_cv.sh`, `run_sweep.sh`, `sweep_status.sh`, `summarize_sweep.py`); the current way to run an experiment is `run_experiment.py configs/<file>.yaml`, progress is shown by `run_status.py`. `preprocessing/` holds two unused scripts of the original data preparation (`dataset_split.py`, `octaaug.py`); the pipeline builds its data with `Preprocessing/build_processed_octa500.py`. Not tested with the pinned environment.

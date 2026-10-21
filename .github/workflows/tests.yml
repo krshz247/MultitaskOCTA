@@ -20,7 +20,7 @@ jobs:
           pip install -r requirements.txt pyflakes
       - name: pyflakes (pipeline files)
         run: |
-          python -m pyflakes octa aggregate_folds.py classification_baseline.py eval_checkpoint.py faz_vessel_seg_cls.py \
+          python -m pyflakes $(find octa -name '*.py' -not -path 'octa/third_party/*') aggregate_folds.py classification_baseline.py eval_checkpoint.py faz_vessel_seg_cls.py \
             plot_runs.py run_experiment.py analysis Preprocessing/build_processed_octa500.py tests
       - name: Fast unit tests
         env:

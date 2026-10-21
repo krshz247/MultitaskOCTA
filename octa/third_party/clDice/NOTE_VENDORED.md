@@ -1,0 +1,2 @@
+Vendored copy of https://github.com/jocpae/clDice (Shit et al., CVPR 2021, MIT licence, see `LICENSE`). Used: `cldice_loss/pytorch/soft_skeleton.py` (soft skeleton of the training loss) and `cldice_metric/cldice.py` (clDice metric).
+Removed from the copy because the pipeline does not use them: the Keras implementation, the poster PDF and an illustration (see the upstream repository). The `skeletonize_3d` import in the metric is optional so that current scikit-image versions work.

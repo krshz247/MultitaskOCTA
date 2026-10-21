@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import segmentation_models_pytorch as smp
-from clDice.cldice_loss.pytorch.soft_skeleton import soft_skel
+from octa.third_party.clDice.cldice_loss.pytorch.soft_skeleton import soft_skel
 
 
 class LossMulti:

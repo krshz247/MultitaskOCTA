@@ -26,7 +26,7 @@ from octa.models import my_get_encoder, MyMultibranchModel
 from sklearn.metrics import confusion_matrix
 from dataclasses import dataclass, field
 from typing import Any
-from clDice.cldice_metric.cldice import clDice
+from octa.third_party.clDice.cldice_metric.cldice import clDice
 from octa.metrics import evaluate_loader, save_prediction_figure
 from octa.data.augment import joint_augment
 import json

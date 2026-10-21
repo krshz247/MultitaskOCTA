@@ -33,7 +33,7 @@ Technische Universität München, Biomedical Physics, 2023. Built on [BSDA-Net](
 |---|---|
 | From BSDA-Net (Lin et al., 2021) | the joint FAZ-segmentation + classification idea; the three-decoder architecture with boundary heat-map and signed-distance auxiliary tasks |
 | Thesis (2023) | vessel segmentation as a second task with OCTA-500 vessel labels; soft-clDice loss; the ablation design |
-| This repository | bug fixes in the training objective (disabled clDice term, metrics on rounded logits, unused class weights, off-by-one classifier unfreezing, checkpoint selection); the dataset builder in Python (the MATLAB original was not runnable); class-stratified 5-fold protocol and metrics (Dice, clDice, topology, balanced accuracy, bootstrap, McNemar); seeds, YAML experiment configs, Kaggle GPU runs; the `octa/` package with 29 tests and CI; ablations and analyses (`analysis/`); an inference module and a model card |
+| This repository | bug fixes in the training objective (disabled clDice term, metrics on rounded logits, unused class weights, off-by-one classifier unfreezing, checkpoint selection); the dataset builder in Python (the MATLAB original was not runnable); class-stratified 5-fold protocol and metrics (Dice, clDice, topology, balanced accuracy, bootstrap, McNemar); seeds, YAML experiment configs, Kaggle GPU runs; the `octa/` package with 33 tests and CI; ablations and analyses (`analysis/`); an inference module and a model card |
 
 ## Try it
 
@@ -86,8 +86,8 @@ octa/                          the package behind it: joint_training.py, classif
 classification_baseline.py     entry point: classification-only ResNeSt50 baseline, same protocol (data, folds, loss weights, metrics)
 aggregate_folds.py             mean ± std over folds at each fold's best-validation epoch
 plot_runs.py, eval_checkpoint.py, rename_tb_tags.py   curves, re-evaluation of a checkpoint, TensorBoard tag conversion
-run_experiment.py, configs/    run an experiment from a YAML file (all folds, builds the data on demand); run_cv.sh, run_sweep.sh: shell equivalents
-legacy/                        scripts, helpers and models of the original BSDA-Net code base (not part of the pipeline; see legacy/README.md)
+run_experiment.py, configs/    run an experiment from a YAML file (all folds, builds the data on demand)
+legacy/                        original BSDA-Net scripts and models, the early shell runners and unused preprocessing scripts (not part of the pipeline; see legacy/README.md)
 Preprocessing/build_processed_octa500.py   builds the training data from the raw OCTA-500 release
 octa/predict.py                inference: image in, class probabilities + FAZ / vessel masks out (docs/MODEL_CARD.md)
 analysis/                      one script per question (biomarkers, attention maps, epoch rules, ensembles, power); see analysis/README.md
@@ -96,7 +96,7 @@ kaggle/                        notebook + bundle script to train on a Kaggle GPU
 docs/METHOD.md                 thesis → code map, metric definitions, known deviations  (read this first)
 docs/RESULTS.md                all result tables
 docs/SUMMARY_FOR_SUPERVISORS.md, docs/MODEL_CARD.md   findings in one page; what the released model is and is not
-clDice/                        official clDice implementation (MIT)
+octa/third_party/clDice/       vendored clDice implementation (MIT)
 ```
 
 ## Setup
@@ -127,9 +127,9 @@ D=Datasets/processed_OCTA500/ILM_OPL_large
 # one fold of the joint model with the thesis hyper-parameters (batch 4, LR 1e-4 / 2e-5, startpoint 20, loss weights 3:1:1)
 python faz_vessel_seg_cls.py --img_path $D/image_surface --gt_path $D/gt_full/mask --save_path runs/thesis \
        --train_type Vessel_FAZ --distance_type dist_signed11 --num_epochs 100 --fold 0 --eval_every 3 --full_eval
-./run_cv.sh ILM_OPL_large 100 20 _thesis --full_eval          # all five folds in turn
-python aggregate_folds.py runs/ILM_OPL_large_thesis           # mean ± std of the test metrics at the best validation epoch
-SCRIPT=classification_baseline.py ./run_cv.sh ILM_OPL_large 100 20 _cls --full_eval   # classification-only arm
+python run_experiment.py configs/joint_thesis.yaml            # all five folds in turn (100 epochs, thesis settings)
+python aggregate_folds.py runs/joint_thesis100              # mean ± std of the test metrics at the best validation epoch
+python run_experiment.py configs/classification_baseline.yaml # classification-only arm, same protocol
 ```
 
 Outputs per run: `results_fold<k>.json` (arguments, git commit, per-image metrics every 3 epochs), `best_fold<k>.pt`, `preds_fold<k>/` (prediction figures), TensorBoard logs (`tensorboard --logdir runs`).
@@ -140,7 +140,7 @@ Optional extensions, **off by default** (see `docs/METHOD.md`): `--scheduler one
 ## Tests
 
 ```bash
-python -m unittest discover -s tests            # 29 tests: fast unit tests + golden regression (the golden trainings take several minutes on a CPU)
+python -m unittest discover -s tests            # 33 tests: fast unit tests + golden regression (the golden trainings take several minutes on a CPU)
 SKIP_SLOW_TESTS=1 python -m unittest discover -s tests   # unit tests only (seconds)
 python tests/verify_checkpoints.py              # re-evaluates stored checkpoints (needs the local runs/ and Datasets/)
 ```
@@ -200,4 +200,4 @@ This work builds directly on [llmir/MultitaskOCTA](https://github.com/llmir/Mult
 
 ## Licence
 
-No licence is granted: this is research code, shared publicly with full attribution for academic and portfolio purposes. The base BSDA-Net code from its original authors has no explicit licence either; the vendored `clDice/` folder is MIT-licensed.
+No licence is granted: this is research code, shared publicly with full attribution for academic and portfolio purposes. The base BSDA-Net code from its original authors has no explicit licence either; the vendored `octa/third_party/clDice/` folder is MIT-licensed.

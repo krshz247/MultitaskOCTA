@@ -39,6 +39,7 @@ Parameter sets (first cell)
 
 Repeats with different seeds (to measure how much a single run varies)
 * Add `SEED` to the first cell (default 2021; the cross-validation folds do not change with the seed) and give every run a name with the seed, e.g. `ILM_OPL_large_cv40reg_s1`, `..._s2`, `..._s3`. One 5-fold run of 40 epochs takes about 3 hours, so one seed per notebook version (Kaggle allows two GPU sessions at the same time).
+* Runs made with the code of 2026-10-21 or later also log the class probabilities of the test scans at every evaluated epoch (`test_probs` and `test_names` in `results_fold*.json`). With them all variants can be compared under ONE epoch rule, pooled over the folds, without checkpoints: `python analysis/oof_rule.py --rule val_bal --ref C_plain --group A_joint runs/<A>_s4 --group B_shuffled runs/<B>_s3 --group C_plain runs/<C>_s3`. `--cls_ckpt balanced_acc` additionally saves `best_cls_fold<k>.pt` (a checkpoint chosen by validation balanced accuracy); it is not needed for that analysis and adds about 1.6 GB to the output.
 * After downloading the zips into `runs/`: `python aggregate_seeds.py --group joint_reg runs/<A>_s1 runs/<A>_s2 runs/<A>_s3 --group cls_reg runs/<B>_s1 runs/<B>_s2 runs/<B>_s3` — mean ± std over seeds and paired differences per seed.
 
 Planning
