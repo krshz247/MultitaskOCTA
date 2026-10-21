@@ -13,7 +13,7 @@ Technische Universität München, Biomedical Physics, 2023. Built on [BSDA-Net](
 **What I did.** I went back to the thesis code, found that its topology loss (clDice) was computed and then silently overwritten, so it never trained, fixed that and several other bugs, rebuilt the data pipeline, and re-tested the question with a leakage-free 5-fold protocol, repeated training runs and uncertainty estimates (bootstrap intervals, power analysis, ablations, attention maps).
 
 **What I found.**
-- Segmentation works: FAZ Dice ≈ 0.93, vessel Dice ≈ 0.79, clDice ≈ 0.86.
+- Segmentation works: FAZ Dice 0.88–0.93 depending on the run (two of four runs learned the FAZ late), vessel Dice ≈ 0.79, clDice ≈ 0.86.
 - Classification reaches 0.75–0.77 balanced accuracy on 364 scans (only 49 AMD). **The segmentation tasks bring no measurable benefit:** the joint model, the same model trained on shuffled masks, and a plain regularised classifier agree within the run-to-run spread (about ±0.03). The auxiliary losses behave as a regulariser.
 - A single run is not enough to see this: the same recipe gave 0.66 to 0.76 balanced accuracy across seeds.
 
@@ -185,7 +185,7 @@ If you build on this code, please cite the original BSDA-Net paper, clDice if yo
 
 @article{li2024octa500,
   title={OCTA-500: A retinal dataset for optical coherence tomography angiography study},
-  author={Li, Mingchao and others},
+  author={Li, Mingchao and Huang, Kun and Xu, Qiuzhuo and Yang, Jiadong and Zhang, Yuhan and Ji, Zexuan and Xie, Keren and Yuan, Songtao and Liu, Qinghuai and Chen, Qiang},
   journal={Medical Image Analysis},
   volume={93},
   pages={103092},
