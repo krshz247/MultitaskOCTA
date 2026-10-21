@@ -34,20 +34,20 @@ rng = np.random.default_rng(0)
 for i, (name, col, runs) in enumerate(GROUPS):
     v = [bal(r) for r in runs if os.path.exists(f"runs/ILM_OPL_large_{r}/oof_probs.npy")]
     ax.scatter(i + rng.uniform(-0.08, 0.08, len(v)), v, s=46, color=col, zorder=3, label="single run" if i == 0 else None)
-    ax.hlines(np.mean(v), i - 0.22, i + 0.22, color=col, lw=2.2, zorder=2)
+    ax.hlines(np.mean(v), i - 0.22, i + 0.22, color=col, lw=2.2, zorder=2, label="mean of the runs" if i == 0 else None)
     e = ens([r for r in runs if os.path.exists(f"runs/ILM_OPL_large_{r}/oof_probs.npy")])
-    ax.scatter([i + 0.3], [e], marker="D", s=40, facecolor="white", edgecolor=col, lw=1.6, zorder=3, label="average of the runs" if i == 0 else None)
+    ax.scatter([i + 0.3], [e], marker="D", s=40, facecolor="white", edgecolor=col, lw=1.6, zorder=3, label="ensemble: class probabilities of\nall runs averaged, then scored" if i == 0 else None)
     labels.append(f"{name}\n({len(v)} runs)")
 for j, (name, r) in enumerate(SINGLE):
     i = len(GROUPS) + j
     ax.scatter([i], [bal(r)], s=46, facecolor="white", edgecolor="#777", lw=1.6, zorder=3, label="single run, not repeated" if j == 0 else None)
     labels.append(f"{name}\n(1 run)")
 ax.set_xticks(range(len(labels))); ax.set_xticklabels(labels, fontsize=8.5)
-ax.set_ylabel("Balanced accuracy (pooled out-of-fold, 364 scans)"); ax.set_ylim(0.62, 0.84)
+ax.set_ylabel("Balanced accuracy (pooled out-of-fold, 364 scans)"); ax.set_ylim(0.62, 0.90)
 ax.axhspan(0.747 - 0.06, 0.747 + 0.06, color="#bbb", alpha=0.25, lw=0, zorder=0)
 ax.text(1.5, 0.697, "grey band: ±0.06, the 95 % interval of one run", ha="left", fontsize=8, color="#555")
 ax.set_title("(a) Same recipe, different seed: the spread is as large as the differences", fontsize=10, loc="left")
-ax.legend(frameon=False, fontsize=8, loc="lower left")
+ax.legend(frameon=False, fontsize=8, loc="upper right")
 
 g = json.load(open("analysis/gradcam_results.json"))
 conds = [("none", "unchanged"), ("band15", "outer 30 %\nreplaced"), ("band30", "outer 60 %\nreplaced")]
