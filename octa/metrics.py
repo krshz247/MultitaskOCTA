@@ -36,8 +36,9 @@ def _components(b):
 
 
 @torch.no_grad()
-def evaluate_loader(model, loader, device):
-    """Channels of the segmentation output / target are [FAZ, vessel, background]."""
+def evaluate_loader(model, loader, device, probs_out=None):
+    """Channels of the segmentation output / target are [FAZ, vessel, background].
+    probs_out: optional list that receives the class probabilities (softmax) of every scan, in loader order."""
     model.eval()
     seg = {k: [] for k in ("faz_dice", "faz_jaccard", "vessel_dice", "vessel_jaccard", "vessel_cldice", "faz_dice_thr", "vessel_dice_thr",
                                      "vessel_topo_prec", "vessel_topo_sens", "vessel_components", "vessel_fragments", "vessel_components_gt",
@@ -50,6 +51,8 @@ def evaluate_loader(model, loader, device):
         inputs = inputs.to(torch.float32).to(device)
         seg_outputs = model.module.seg_forward(inputs)
         clf_outputs = model.module.clf_forward(inputs, seg_outputs[3], seg_outputs[4], seg_outputs[5])
+        if probs_out is not None:
+            probs_out.extend(torch.softmax(clf_outputs.float(), dim=1).cpu().numpy().tolist())
         for branch, (out, tgt) in enumerate(((seg_outputs[1], targets2), (seg_outputs[2], targets3))):
             out, tgt = out.float().cpu(), tgt.float()
             for ch in range(2):

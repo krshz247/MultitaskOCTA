@@ -100,6 +100,25 @@ class Golden(unittest.TestCase):
     def test_classification_baseline(self):
         self.check("cls", "classification_baseline.py")
 
+    def _probabilities_logged(self, name, script):
+        save = os.path.join(self.tmp, name)
+        run(script, self.data, save, ["--cls_ckpt", "balanced_acc"])
+        d = json.load(open(os.path.join(save, "results_fold0.json")))
+        n = len(d["test_names"])
+        self.assertGreater(n, 0)
+        for h in d["history"]:  # one row of class probabilities per test scan and evaluated epoch
+            p = np.array(h["test_probs"])
+            self.assertEqual(p.shape, (n, 3))
+            self.assertTrue(np.allclose(p.sum(1), 1.0, atol=1e-3))
+        self.assertTrue(os.path.exists(os.path.join(save, "best_cls_fold0.pt")))
+        self.assertTrue(os.path.exists(os.path.join(save, "best_fold0.pt")))
+
+    def test_joint_logs_probabilities_and_second_checkpoint(self):
+        self._probabilities_logged("joint_probs", "faz_vessel_seg_cls.py")
+
+    def test_baseline_logs_probabilities_and_second_checkpoint(self):
+        self._probabilities_logged("cls_probs", "classification_baseline.py")
+
 
 if __name__ == "__main__":
     unittest.main()

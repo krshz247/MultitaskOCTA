@@ -47,7 +47,7 @@ def build_strong_aug():
 
 
 @torch.no_grad()
-def predict(model, loader, device):
+def predict(model, loader, device, probs_out=None):
     model.eval()
     y, p, loss, n = [], [], 0.0, 0
     crit = nn.CrossEntropyLoss()
@@ -56,6 +56,8 @@ def predict(model, loader, device):
         t = cls.argmax(2).squeeze(1)
         loss += crit(out.cpu(), t).item() * len(t); n += len(t)
         y += t.tolist(); p += out.argmax(1).cpu().tolist()
+        if probs_out is not None:
+            probs_out.extend(torch.softmax(out, 1).cpu().numpy().tolist())
     return y, p, loss / max(n, 1)
 
 
@@ -73,7 +75,7 @@ def main():
     crit = nn.CrossEntropyLoss(weight=torch.FloatTensor([0.49, 1.88, 2.35]).to(device), label_smoothing=args.label_smoothing)
     strong = build_strong_aug() if args.strong_aug else None
     os.makedirs(args.save_path, exist_ok=True)
-    history, best = [], -1.0
+    history, best, best_cls = [], -1.0, -1.0
     for epoch in range(1, args.num_epochs + 1):
         model.train(); tl, tn, tc = 0.0, 0, 0
         for inputs, _, _, _, cls in trainL:
@@ -84,15 +86,19 @@ def main():
             tl += loss.item() * len(t); tn += len(t); tc += (out.argmax(1) == t).sum().item()
         rec = {"epoch": epoch, "train_loss": tl / tn, "train_acc": tc / tn}
         if args.eval_every and (epoch % args.eval_every == 0 or epoch == args.num_epochs):
-            yv, pv, lv = predict(model, devL, device); yt, pt, lt = predict(model, testL, device)
+            yv, pv, lv = predict(model, devL, device); tp = []; yt, pt, lt = predict(model, testL, device, tp)
             rec["val"] = dict(classification_metrics(yv, pv, devL.dataset.img_names), cls_loss=lv)
             rec["test"] = dict(classification_metrics(yt, pt, testL.dataset.img_names), cls_loss=lt)
+            rec["test_probs"] = [[round(v, 4) for v in row] for row in tp]
             history.append(rec)
             if rec["val"]["f1_macro"] > best:
                 best = rec["val"]["f1_macro"]; torch.save(model.state_dict(), os.path.join(args.save_path, "best_fold{}.pt".format(args.fold)))
+            if args.cls_ckpt != "none" and rec["val"][args.cls_ckpt] > best_cls:  # optional second checkpoint by balanced accuracy / macro-F1
+                best_cls = rec["val"][args.cls_ckpt]; torch.save(model.state_dict(), os.path.join(args.save_path, "best_cls_fold{}.pt".format(args.fold)))
             with open(os.path.join(args.save_path, "results_fold{}.json".format(args.fold)), "w") as fh:
                 json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "git_commit": git_commit(),
-                           "model": "classification_baseline", "history": history}, fh, indent=1)
+                           "model": "classification_baseline",
+                           "test_names": [os.path.basename(n) for n in testL.dataset.img_names[:len(tp)]], "history": history}, fh, indent=1)
         print("epoch {} train loss {:.3f} acc {:.3f}".format(epoch, rec["train_loss"], rec["train_acc"]) +
               (" | val acc {:.3f} f1 {:.3f} | test acc {:.3f} f1 {:.3f}".format(rec["val"]["acc"], rec["val"]["f1_macro"], rec["test"]["acc"], rec["test"]["f1_macro"]) if "val" in rec else ""), flush=True)
 

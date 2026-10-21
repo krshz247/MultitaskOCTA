@@ -448,6 +448,7 @@ def main():
         settings.loss_cfg.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice, cldice_alpha=args.cldice_alpha, vessel_weight=args.vessel_weight)
         history = []
         best_score = -1.0
+        best_cls = -1.0
         tb_writer = SummaryWriter(os.path.join(args.save_path, "tb_fold{}".format(args.fold)))
         pred_dir = os.path.join(args.save_path, "preds_fold{}".format(args.fold))
         os.makedirs(pred_dir, exist_ok=True)
@@ -489,9 +490,12 @@ def main():
                 wandb.log({"test": test_data, "epochs": epoch})
 
             if args.eval_every and (epoch % args.eval_every == 0 or epoch == epoch_start + args.num_epochs):
-                history.append({"epoch": epoch, "val": evaluate_loader(model, devLoader, device), "test": evaluate_loader(model, testLoader, device)})
+                test_probs = []  # class probabilities of the test scans at this epoch: lets any epoch-selection rule be applied afterwards, also pooled over folds
+                history.append({"epoch": epoch, "val": evaluate_loader(model, devLoader, device), "test": evaluate_loader(model, testLoader, device, probs_out=test_probs),
+                                "test_probs": np.round(test_probs, 4).tolist()})
                 with open(os.path.join(args.save_path, "results_fold{}.json".format(args.fold)), "w") as fh:
-                    json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "git_commit": git_commit(), "history": history}, fh, indent=1)
+                    json.dump({"args": {k: v for k, v in vars(args).items() if isinstance(v, (int, float, str, bool, type(None)))}, "git_commit": git_commit(),
+                               "test_names": [os.path.basename(n) for n in testLoader.dataset.img_names[:len(test_probs)]], "history": history}, fh, indent=1)
                 for split in ("val", "test"):
                     for k, v in history[-1][split].items():
                         tb_writer.add_scalar("eval/{}/{}".format(split, k), v, epoch)  # per-image metrics
@@ -503,6 +507,10 @@ def main():
                     best_score = score
                     torch.save(model.module.state_dict(), os.path.join(args.save_path, "best_fold{}.pt".format(args.fold)))
                     logging.warning("best validation score %.4f at epoch %d, checkpoint saved", score, epoch)
+                # optional second checkpoint chosen by a classification metric alone (no segmentation terms), after the classifier has joined training
+                if args.cls_ckpt != "none" and epoch > startpoint and v[args.cls_ckpt] > best_cls:
+                    best_cls = v[args.cls_ckpt]
+                    torch.save(model.module.state_dict(), os.path.join(args.save_path, "best_cls_fold{}.pt".format(args.fold)))
             for gi, g in enumerate(optimizer.param_groups):
                 tb_writer.add_scalar("lr/group{}".format(gi), g["lr"], epoch)
             for tag, d_ in (("train", train_data), ("val", dev_data), ("test", test_data)):

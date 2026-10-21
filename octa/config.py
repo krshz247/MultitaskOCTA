@@ -77,6 +77,7 @@ class TrainConfig:
     augmentation: str = field(default=True, metadata=dict(help='using data augmentation.', type='str'))
 
     # ---- Output, hardware and logging
+    cls_ckpt: str = field(default='none', metadata=dict(help='also save best_cls_fold<k>.pt, the epoch with the best validation balanced accuracy / macro-F1 (a rule without segmentation terms, the same for every variant); none = only the pipeline checkpoint best_fold<k>.pt.', choices=['none', 'balanced_acc', 'f1_macro'], type='str'))
     save_path: Optional[str] = field(default=None, metadata=dict(help='Model save path.', type='str'))
     wandb_path: Optional[str] = field(default=None, metadata=dict(help='wandb log path.', type='str'))
     log_mode: bool = field(default=True, metadata=dict(help='logging in wandb', type='bool'))

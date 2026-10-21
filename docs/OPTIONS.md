@@ -53,6 +53,7 @@
 | `--detach_clf_features` | `False` | ablation: stop-gradient on the decoder features fed to the classifier. |
 | `--shuffle_masks` | `False` | control: give every training image the masks of a different training scan. |
 | `--augmentation` | `True` | using data augmentation. |
+| `--cls_ckpt` | `none` | also save best_cls_fold<k>.pt, the epoch with the best validation balanced accuracy / macro-F1 (a rule without segmentation terms, the same for every variant); none = only the pipeline checkpoint best_fold<k>.pt. |
 | `--save_path` | `None` | Model save path. |
 | `--wandb_path` | `None` | wandb log path. |
 | `--log_mode` | `True` | logging in wandb |

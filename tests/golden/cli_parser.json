@@ -649,6 +649,22 @@
   "action": "_StoreAction",
   "help": "using data augmentation."
  },
+ "cls_ckpt": {
+  "flags": [
+   "--cls_ckpt"
+  ],
+  "default": "none",
+  "type": "str",
+  "nargs": null,
+  "choices": [
+   "none",
+   "balanced_acc",
+   "f1_macro"
+  ],
+  "const": null,
+  "action": "_StoreAction",
+  "help": "also save best_cls_fold<k>.pt, the epoch with the best validation balanced accuracy / macro-F1 (a rule without segmentation terms, the same for every variant); none = only the pipeline checkpoint best_fold<k>.pt."
+ },
  "save_path": {
   "flags": [
    "--save_path"
