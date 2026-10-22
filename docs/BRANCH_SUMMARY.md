@@ -27,7 +27,7 @@ implements the thesis, `docs/SUMMARY_FOR_SUPERVISORS.md` for what the experiment
 `--cldice_alpha`, `--vessel_weight`, `--stratify_fov`, `--bg_dice 0`, builder options `--projection`, `--vessel`, `--fov_mode`.
 
 ## Experiments and findings (single-page version: `docs/SUMMARY_FOR_SUPERVISORS.md`; scripts and reports: `analysis/`)
-Segmentation is accurate and stable (FAZ Dice 0.88–0.93 depending on the run, vessel Dice ≈ 0.79, clDice ≈ 0.86). Each of the three main recipes (joint model, joint model on shuffled masks, plain classifier,
+Segmentation is accurate and stable (FAZ Dice ≈ 0.93 with a 0.5 threshold; 0.88–0.93 with the 3-class argmax depending on the run; vessel Dice ≈ 0.79, clDice ≈ 0.86). Each of the three main recipes (joint model, joint model on shuffled masks, plain classifier,
 all regularised) was trained three times: classification reaches ≈ 0.75–0.77 balanced accuracy and the three are equal within the run-to-run spread (about ±0.03), so the segmentation tasks
 bring **no measurable classification benefit**; the auxiliary losses act as a regulariser. The choice of the reported epoch matters (the pipeline score uses segmentation metrics that are meaningless for the
 shuffled-mask variant), so classification comparisons are also given under one classification-only rule. The field of view is not what the networks use, though both are sensitive to the image frame;

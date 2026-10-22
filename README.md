@@ -13,7 +13,7 @@ Technische Universität München, Biomedical Physics, 2023. Built on [BSDA-Net](
 **What I did.** I went back to the thesis code, found that its topology loss (clDice) was computed and then silently overwritten, so it never trained, fixed that and several other bugs, rebuilt the data pipeline, and re-tested the question with a leakage-free 5-fold protocol, repeated training runs and uncertainty estimates (bootstrap intervals, power analysis, ablations, attention maps).
 
 **What I found.**
-- Segmentation works: FAZ Dice 0.88–0.93 depending on the run (two of four runs learned the FAZ late), vessel Dice ≈ 0.79, clDice ≈ 0.86.
+- Segmentation works: FAZ Dice ≈ 0.93 in every run with a 0.5 threshold (0.88 with the stricter 3-class argmax in two of four runs, where the background channel also claims the FAZ pixels), vessel Dice ≈ 0.79, clDice ≈ 0.86.
 - Classification reaches 0.75–0.77 balanced accuracy on 364 scans (only 49 AMD). **The segmentation tasks bring no measurable benefit:** the joint model, the same model trained on shuffled masks, and a plain regularised classifier agree within the run-to-run spread (about ±0.03). The auxiliary losses behave as a regulariser.
 - A single run is not enough to see this: the same recipe gave 0.66 to 0.76 balanced accuracy across seeds.
 
@@ -68,7 +68,7 @@ Own results of this implementation, 5-fold cross-validation, B5 projection, 40 e
 | joint model, shuffled masks (segmentation supervision meaningless) | 3 | 0.771 ± 0.045 | 0.726 ± 0.052 | 0.690 ± 0.058 | 0.67 ± 0.17 |
 | classification-only ResNeSt50, regularised | 3 | 0.819 ± 0.030 | 0.759 ± 0.017 | 0.742 ± 0.032 | 0.63 ± 0.04 |
 
-Segmentation of the joint model: FAZ Dice 0.916 ± 0.025, vessel Dice 0.790 ± 0.004, vessel clDice 0.862 ± 0.004. All tables, the ablations, the epoch-rule comparison and the reading of them: `docs/RESULTS.md`; one-page summary: `docs/SUMMARY_FOR_SUPERVISORS.md`.
+Segmentation of the joint model: FAZ Dice 0.916 ± 0.025 (3-class argmax; 0.93 with a 0.5 threshold in every run), vessel Dice 0.790 ± 0.004, vessel clDice 0.862 ± 0.004. All tables, the ablations, the epoch-rule comparison and the reading of them: `docs/RESULTS.md`; one-page summary: `docs/SUMMARY_FOR_SUPERVISORS.md`.
 
 **Reading it.**
 - The three recipes are equal within the run-to-run spread; the stop-gradient and no-segmentation-loss ablations are lower but are single runs and were not repeated.

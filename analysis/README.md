@@ -18,6 +18,7 @@ Result files are written next to the scripts (`*.txt` = printed report, committe
 | `oof_rule.py` | Pooled out-of-fold comparison of recipes under ONE epoch rule (validation balanced accuracy, validation F1, last epoch, pipeline score) from the probabilities that runs of 2026-10-21 or later log in `results_fold*.json`; ensembles and paired bootstrap against a reference group | runs with logged probabilities | printed |
 | `ensemble_runs.py` | Do repeats of a recipe make the same mistakes (agreement between runs), and what does averaging 2–3 runs give? Caches out-of-fold probabilities as `<run>/oof_probs.npy` | runs | `ensemble_runs_results.txt` |
 | `make_figures.py` | Draws the README figures (balanced accuracy per run and recipe, image-frame ablation, predicted masks) from stored results; uses no scan pixels | cached `oof_probs.npy` of the runs, `gradcam_results.json`, optionally exported weights | `Figs/findings.png`, `Figs/predictions.png` |
+| `faz_channel_check.py` | Why does the FAZ Dice of the 3-class argmax differ between runs of one recipe? Which channel claims the FAZ pixels (report in `faz_channel_check.txt`) | joint runs with `best_fold0.pt` | printed |
 | `power_seeds.py` | How large must a difference be to be detectable, and what do seed repeats buy? | `oof_probs.npz` | `power_seeds_results.txt` |
 | `postprocess_vessels.py` | Does removing small vessel fragments change the metrics? | joint run | printed |
 

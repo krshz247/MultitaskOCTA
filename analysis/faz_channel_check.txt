@@ -1,0 +1,32 @@
+Why does the FAZ Dice (3-class argmax) differ between runs of the same recipe?   (fold 0 test scans, best-validation checkpoints; joint regularised model)
+
+FAZ Dice on the test folds, mean over the five folds (analysis from results_fold*.json):
+  run             argmax of the 3 channels    FAZ channel, threshold 0.5
+  Mac run               0.934                     0.937
+  Kaggle seed 1         0.926                     0.925
+  Kaggle seed 2         0.888                     0.933
+  Kaggle seed 3         0.884                     0.936
+
+Validation FAZ Dice per evaluated epoch (mean over folds), argmax vs threshold:
+  epochs                       3    6    9   12   15   18   21   24   27
+  seed 1  argmax             0.84 0.88 0.90 0.92 0.90 0.92 0.93 0.92 0.93
+  seed 1  threshold          0.90 0.92 0.92 0.92 0.91 0.92 0.93 0.93 0.93
+  seed 2  argmax             0.00 0.00 0.10 0.18 0.29 0.70 0.73 0.81 0.86
+  seed 2  threshold          0.06 0.88 0.90 0.89 0.88 0.92 0.91 0.93 0.93
+  seed 3  argmax             0.00 0.24 0.62 0.76 0.76 0.77 0.85 0.85 0.88
+  seed 3  threshold          0.88 0.92 0.90 0.92 0.93 0.92 0.93 0.93 0.94
+
+Inside the ground-truth FAZ of the fold-0 test scans (final checkpoint):
+  run      pixels assigned to FAZ / vessel / background by argmax     mean probability: FAZ / vessel / background
+  seed 1        0.95 / 0.00 / 0.05                                      0.95 / 0.00 / 0.09
+  seed 2        0.88 / 0.00 / 0.12                                      0.95 / 0.00 / 1.00
+  seed 3        0.83 / 0.00 / 0.17                                      0.96 / 0.00 / 1.00
+
+Reading: the FAZ is segmented as well in every run (threshold Dice 0.93; the FAZ channel learns within the first epochs in all runs, 0.88 by epoch 3-6).
+In seeds 2 and 3 the background channel ALSO outputs probability 1.0 inside the FAZ; the channels are trained with independent sigmoids and per-channel Dice,
+nothing forces the background channel to be 0 on the few thousand FAZ pixels (a negligible part of its Dice), so the argmax between 0.95 (FAZ) and 1.00
+(background) decides the pixel and often goes to the background. In seed 1 and in the Mac run the background channel learned to be low inside the FAZ.
+Which of the two happens depends on the training seed (the three Kaggle runs differ only in the seed; all five folds of a run behave alike because
+the folds of a run share the seed). Not a platform effect and not slow learning. The vessel Dice does not suffer (vessel channel 0.00 inside the FAZ).
+Possible remedies (not tried; no new experiments): a mutual-exclusion term between FAZ and background (the existing --exclusion handles FAZ/vessel only),
+a softmax over the three channels, or reporting the thresholded FAZ Dice. The classifier is not affected (it uses decoder features, not the argmax map).

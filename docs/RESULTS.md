@@ -19,7 +19,7 @@ Rows marked "1 run" are single runs and cannot be separated from that noise.
 | common field of view (`joint_common_fov`) | 1 | 0.933 ± 0.018 | 0.738 ± 0.012 | 0.826 ± 0.012 | 0.956 ± 0.003 |
 
 \* micro-average over the three channels including the background — the kind of number the thesis' Dice table most likely reports; it is dominated by the background and not comparable with the class-wise values.
-(One of the three regularised runs learned the FAZ late and ended at FAZ Dice 0.888; the other two reach 0.93.)
+(FAZ Dice here is measured on the 3-class argmax map. In the seed-2 run (0.888) and the seed-3 run (0.884) the background channel also outputs probability ≈ 1 inside the FAZ, so the argmax often assigns FAZ pixels to the background; with a 0.5 threshold on the FAZ channel itself all four runs reach 0.925–0.937. The segmentation is equally good in every run, the class assignment is not; see `analysis/faz_channel_check.txt`.)
 
 **Classification** (Normal / DR / AMD):
 
