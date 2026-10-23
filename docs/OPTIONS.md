@@ -46,6 +46,7 @@
 | `--vessel_weight` | `1.0` | weight of the vessel (Dice + clDice) term in the segmentation loss. |
 | `--vessel_bce` | `0.0` | weight of an extra BCE on the vessel channel (0 = thesis loss). |
 | `--exclusion` | `0.0` | weight of the FAZ/vessel overlap penalty (0 = off). |
+| `--faz_bg_exclusion` | `0.0` | weight of the mean background probability inside the ground-truth FAZ (0 = off); keeps the background channel from claiming FAZ pixels in the 3-class argmax. |
 | `--aux_channels` | `both` | channels used by the heatmap/SDM auxiliary losses (thesis: both). |
 | `--label_smoothing` | `0.0` | classification-only baseline: label smoothing of the cross-entropy. |
 | `--strong_aug` | `False` | classification-only baseline: random affine + intensity + noise + erasing on top of the rotations/flips. |

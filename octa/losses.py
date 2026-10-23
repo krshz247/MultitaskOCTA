@@ -153,16 +153,20 @@ class VesselClDiceLoss(nn.Module):
 
 
 class Vessel_FAZ_multiLoss:
-    def __init__(self, weights=[1, 1, 1], vessel_bce=0.0, exclusion=0.0, aux_channels="both", bg_dice=1.0, cldice_alpha=0.5, vessel_weight=1.0):
+    def __init__(self, weights=[1, 1, 1], vessel_bce=0.0, exclusion=0.0, aux_channels="both", bg_dice=1.0, cldice_alpha=0.5, vessel_weight=1.0, faz_bg_exclusion=0.0):
         # vessel_bce / exclusion / aux_channels go beyond the thesis loss (see the tracker):
         #  - vessel_bce: weight of a pixel-wise BCE on the vessel channel. With a dense vessel mask the soft clDice term
         #    is exactly 0 for an all-vessel prediction, so Dice + clDice alone rewards that trivial solution.
         #  - exclusion: weight of mean(p_faz * p_vessel), discouraging vessel predictions inside the FAZ.
         #  - aux_channels: "faz" applies the heatmap / signed-distance MSE to the FAZ channel only.
+        #  - faz_bg_exclusion: weight of the mean background probability inside the ground-truth FAZ. The channels are trained with
+        #    independent sigmoids and the background Dice hardly notices the few thousand FAZ pixels, so in some seeds the background
+        #    channel also outputs ~1 inside the FAZ and the 3-class argmax loses FAZ pixels (analysis/faz_channel_check.txt).
         self.vessel_weight = vessel_weight  # multiplies the whole vessel (Dice + clDice) term inside the segmentation loss
         self.bg_dice = bg_dice  # the segmentation head has 3 channels [FAZ, vessel, background]; the original loss summed all three
         self.vessel_bce = vessel_bce
         self.exclusion = exclusion
+        self.faz_bg_exclusion = faz_bg_exclusion
         self.aux_channels = aux_channels
         self.dice = smp.losses.DiceLoss(mode="multilabel")
         self.cl_dice = VesselClDiceLoss(alpha=cldice_alpha)
@@ -182,6 +186,9 @@ class Vessel_FAZ_multiLoss:
             seg_loss = seg_loss + self.vessel_bce * nn.functional.binary_cross_entropy_with_logits(outputs1[:, 1:2], targets1[:, 1:2])
         if self.exclusion:
             seg_loss = seg_loss + self.exclusion * (torch.sigmoid(outputs1[:, 0:1]) * torch.sigmoid(outputs1[:, 1:2])).mean()
+        if self.faz_bg_exclusion:
+            faz = targets1[:, 0:1].float()
+            seg_loss = seg_loss + self.faz_bg_exclusion * (torch.sigmoid(outputs1[:, 2:3]) * faz).sum() / (faz.sum() + 1e-6)
         if self.aux_channels == "faz":
             outputs2, targets2, outputs3, targets3 = outputs2[:, 0:1], targets2[:, 0:1], outputs3[:, 0:1], targets3[:, 0:1]
         multi_loss = (

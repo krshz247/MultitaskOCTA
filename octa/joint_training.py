@@ -445,7 +445,7 @@ def main():
         loss_weights = list(args.seg_loss_weights)  # lambda_1, lambda_2, lambda_3 (thesis: 3 1 1)
         logging.info(loss_weights)
         startpoint = args.startpoint
-        settings.loss_cfg.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice, cldice_alpha=args.cldice_alpha, vessel_weight=args.vessel_weight)
+        settings.loss_cfg.update(vessel_bce=args.vessel_bce, exclusion=args.exclusion, aux_channels=args.aux_channels, bg_dice=args.bg_dice, cldice_alpha=args.cldice_alpha, vessel_weight=args.vessel_weight, faz_bg_exclusion=args.faz_bg_exclusion)
         history = []
         best_score = -1.0
         best_cls = -1.0

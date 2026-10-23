@@ -116,5 +116,34 @@ class Configs(unittest.TestCase):
         self.assertEqual(cfg, {"args": {"num_epochs": 2}, "data": {"limit": 30}})
 
 
+class FazBackgroundExclusion(unittest.TestCase):
+    def setUp(self):
+        torch.manual_seed(0)
+        self.out1 = torch.randn(2, 3, 16, 16)
+        self.t1 = torch.zeros(2, 3, 16, 16)
+        self.t1[:, 0, 4:8, 4:8] = 1                      # a FAZ block, everything else background
+        self.t1[:, 2] = 1 - self.t1[:, 0]
+        self.o2, self.t2 = torch.randn(2, 2, 16, 16), torch.rand(2, 2, 16, 16)
+
+    def test_off_by_default_and_adds_the_mean_background_probability_inside_the_faz(self):
+        args = (self.out1, self.o2, self.o2, self.t1, self.t2, self.t2)
+        base = Vessel_FAZ_multiLoss([1, 1, 1])(*args)[1]
+        self.assertEqual(float(Vessel_FAZ_multiLoss([1, 1, 1], faz_bg_exclusion=0.0)(*args)[1]), float(base))
+        pen = Vessel_FAZ_multiLoss([1, 1, 1], faz_bg_exclusion=2.0)(*args)[1]
+        expected = 2.0 * torch.sigmoid(self.out1[:, 2:3])[self.t1[:, 0:1] > 0].mean()
+        self.assertTrue(torch.allclose(pen - base, expected, atol=1e-5))
+
+    def test_gradient_lowers_the_background_logit_inside_the_faz_only(self):
+        out = self.out1.clone().requires_grad_(True)
+        Vessel_FAZ_multiLoss([1, 1, 1], faz_bg_exclusion=1.0)(out, self.o2, self.o2, self.t1, self.t2, self.t2)[1].backward()
+        g_with = out.grad[:, 2].clone()
+        out2 = self.out1.clone().requires_grad_(True)
+        Vessel_FAZ_multiLoss([1, 1, 1])(out2, self.o2, self.o2, self.t1, self.t2, self.t2)[1].backward()
+        diff = (g_with - out2.grad[:, 2])
+        inside = self.t1[:, 0] > 0
+        self.assertTrue((diff[inside] > 0).all())        # descent direction lowers the background logit there
+        self.assertEqual(float(diff[~inside].abs().max()), 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

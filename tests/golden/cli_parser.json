@@ -562,6 +562,18 @@
   "action": "_StoreAction",
   "help": "weight of the FAZ/vessel overlap penalty (0 = off)."
  },
+ "faz_bg_exclusion": {
+  "flags": [
+   "--faz_bg_exclusion"
+  ],
+  "default": 0.0,
+  "type": "float",
+  "nargs": null,
+  "choices": null,
+  "const": null,
+  "action": "_StoreAction",
+  "help": "weight of the mean background probability inside the ground-truth FAZ (0 = off); keeps the background channel from claiming FAZ pixels in the 3-class argmax."
+ },
  "aux_channels": {
   "flags": [
    "--aux_channels"

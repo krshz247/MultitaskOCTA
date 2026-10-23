@@ -100,6 +100,11 @@ class Golden(unittest.TestCase):
     def test_classification_baseline(self):
         self.check("cls", "classification_baseline.py")
 
+    def test_faz_background_exclusion_runs(self):  # the option trains end to end and logs finite metrics (its numbers are not pinned)
+        h = run("faz_vessel_seg_cls.py", self.data, os.path.join(self.tmp, "joint_fazbg"), ["--faz_bg_exclusion", "1.0"])
+        self.assertEqual(len(h), 2)
+        self.assertTrue(all(np.isfinite(v) for e in h for v in e["test"].values() if isinstance(v, (int, float))))
+
     def _probabilities_logged(self, name, script):
         save = os.path.join(self.tmp, name)
         run(script, self.data, save, ["--cls_ckpt", "balanced_acc"])

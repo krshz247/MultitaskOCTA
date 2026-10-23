@@ -66,6 +66,7 @@ class TrainConfig:
     vessel_weight: float = field(default=1.0, metadata=dict(help='weight of the vessel (Dice + clDice) term in the segmentation loss.', type='float'))
     vessel_bce: float = field(default=0.0, metadata=dict(help='weight of an extra BCE on the vessel channel (0 = thesis loss).', type='float'))
     exclusion: float = field(default=0.0, metadata=dict(help='weight of the FAZ/vessel overlap penalty (0 = off).', type='float'))
+    faz_bg_exclusion: float = field(default=0.0, metadata=dict(help='weight of the mean background probability inside the ground-truth FAZ (0 = off); keeps the background channel from claiming FAZ pixels in the 3-class argmax.', type='float'))
     aux_channels: str = field(default='both', metadata=dict(help='channels used by the heatmap/SDM auxiliary losses (thesis: both).', choices=['both', 'faz'], type='str'))
     label_smoothing: float = field(default=0.0, metadata=dict(help='classification-only baseline: label smoothing of the cross-entropy.', type='float'))
 
