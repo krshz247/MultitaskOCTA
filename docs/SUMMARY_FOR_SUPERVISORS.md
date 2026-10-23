@@ -6,7 +6,7 @@ Protocol: class-stratified 5-fold cross-validation, epoch chosen on a validation
 The thesis numbers are not used as targets; the method is re-tested on its own protocol. Details: `docs/METHOD.md`, `README.md`.
 
 ## Question
-Does the joint model classify better *because* it has learned FAZ/vessel segmentation, as the thesis argues?
+Does the joint model classify better *because* it has learned FAZ/vessel segmentation? The thesis reported 89.3 % accuracy without segmentation and 94.1 % / 95.2 % with FAZ / FAZ + vessel segmentation, and noted itself that the vessel part brought no substantial gain.
 
 ## What was found (three training runs per recipe for the three main variants, one run for the two ablations; a fourth run is in progress)
 | | balanced accuracy (pooled out-of-fold, 95 % interval) |

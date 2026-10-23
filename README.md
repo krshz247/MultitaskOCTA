@@ -8,7 +8,7 @@ Technische Universität München, Biomedical Physics, 2023. Built on [BSDA-Net](
 
 ## In short
 
-**Question.** Does teaching a network to segment the foveal avascular zone (FAZ) and the retinal vessels improve its diagnosis of diabetic retinopathy (DR) and age-related macular degeneration (AMD) from OCTA images? The thesis said yes.
+**Question.** Does teaching a network to segment the foveal avascular zone (FAZ) and the retinal vessels improve its diagnosis of diabetic retinopathy (DR) and age-related macular degeneration (AMD) from OCTA images? The thesis reported 89.3 % accuracy without segmentation and 94.1 % / 95.2 % with FAZ / FAZ + vessel segmentation, and itself noted that the vessel part brought no substantial gain.
 
 **What I did.** I went back to the thesis code, found that its topology loss (clDice) was computed and then silently overwritten, so it never trained, fixed that and several other bugs, rebuilt the data pipeline, and re-tested the question with a leakage-free 5-fold protocol, repeated training runs and uncertainty estimates (bootstrap intervals, power analysis, ablations, attention maps).
 
@@ -72,7 +72,7 @@ Segmentation of the joint model: FAZ Dice 0.916 ± 0.025 (3-class argmax; 0.93 w
 
 **Reading it.**
 - The three recipes are equal within the run-to-run spread; the stop-gradient and no-segmentation-loss ablations are lower but are single runs and were not repeated.
-- Two runs of the same recipe agree on only 76–82 % of the scans, so one run cannot decide any of these comparisons.
+- Two runs of the same recipe agree on only 79–85 % of the scans, so one run cannot decide any of these comparisons.
 - The reported epoch matters: the default selection score uses segmentation metrics, which are meaningless for the shuffled-mask variant, so `docs/RESULTS.md` also gives all variants under one classification-only rule.
 - The models do not need the field of view as a shortcut (6 mm scans hold 88 % of the AMD cases), but both change their decisions strongly when the outer part of the scan is replaced by grey, so they are sensitive to the image frame.
 - Dense capillary labels make the soft-clDice loss collapse to an all-vessel prediction; the thesis' large-vessel labels do not.

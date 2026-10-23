@@ -44,7 +44,7 @@ segmentation metrics on the validation fold, which for the shuffled-mask and no-
 - Classification reaches about 0.75–0.77 balanced accuracy with large fold-to-fold spread (only 49 AMD scans). **The segmentation tasks bring no measurable benefit:** the joint model, the joint model trained
   on shuffled masks (no valid segmentation information) and a plain regularised classifier are equal within the run-to-run spread (paired difference joint − plain ≈ 0.00, 95 % interval ±0.06).
   The auxiliary losses act as a regulariser; the stop-gradient and no-segmentation-loss variants are lower, but are single runs and were not repeated.
-- A single run is not enough to decide any of this: the shuffled-mask recipe gave 0.762, 0.659 and 0.748 pooled balanced accuracy, and two runs of the same recipe agree on only 76–82 % of the scans.
+- A single run is not enough to decide any of this: the shuffled-mask recipe gave 0.762, 0.659 and 0.748 pooled balanced accuracy, and two runs of the same recipe agree on only 79–85 % of the scans.
 - Field of view: 6 mm scans hold 88 % of the AMD cases. Training on a common 3 mm field of view gives results within the noise, so the model does not need the scale cue; both model families do change their decisions
   strongly when the outer part of the scan is replaced by grey, i.e. they are sensitive to the image frame (`analysis/gradcam_results.txt`). Vessel disconnection is not a disease cue the classifier relies on.
 - Dense capillary labels (`GT_Capillary`) make the soft-clDice loss collapse to an all-vessel prediction; the thesis' large-vessel ground truth does not.
@@ -66,5 +66,5 @@ segmentation metrics on the validation fold, which for the shuffled-mask and no-
 | BSDA-Net (FAZ-only segmentation) | 94.1 | 95.4 | 96.2 | 95.3 |
 | BSDA-Net (RV + FAZ) | 95.2 | 94.7 | 95.6 | 95.4 |
 
-The thesis' classification accuracy (≈ 95 %) is far above what a leakage-free, class-stratified protocol gives here (≈ 0.79–0.82); one possible reason is that augmented copies of the same scan were split across train and test in the original pipeline (not verified).
+The thesis' classification accuracy (95.2 %) is an accuracy under a train / validation / test split whose ratio the thesis text does not state; the leakage-free, class-stratified 5-fold protocol here gives ≈ 0.79–0.82 accuracy (≈ 0.76 balanced accuracy, which is not comparable with the thesis figure). Possible reasons for the gap are untested: a different split protocol, class-imbalance handling, the size of the evaluation set. An earlier guess, that augmented copies of one scan were split across train and test, is only a hypothesis and the thesis describes its augmentation as applied online during training (random 90° rotations and flips).
 </details>

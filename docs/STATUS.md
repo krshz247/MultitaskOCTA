@@ -1,8 +1,7 @@
 # MultitaskOCTA — status
 
-Last updated: 2026-10-23 — status document and session wrap-up rule added (`CLAUDE.md`); link test line below; state after the v1.0 release, README rework, per-epoch probability logging and root clean-up.
-
-link test 2026-10-23
+Last updated: 2026-10-23 — claims table added (`docs/CLAIMS.md`); thesis-text check of the Dice definition, the evaluation protocol and the thesis' own conclusion; state after the v1.0 release, README rework, per-epoch probability logging and root clean-up.
+Branch: fix/thesis-consistency · Commit: 773897c (the commit this status describes; the commit that adds this file sits on top of it)
 
 ## Current state
 - Works:
@@ -40,7 +39,7 @@ All on OCTA-500, B5 projection, 364 labelled scans (251 Normal / 64 DR / 49 AMD)
 
 Reading (see `docs/SUMMARY_FOR_SUPERVISORS.md`): the three recipes lie within the run-to-run spread; no measurable classification benefit of the segmentation tasks on this data. The stop-gradient and no-segmentation-loss ablations are single runs (`docs/RESULTS.md`).
 
-Reference, thesis PDF Tables 4.1 and 4.2 (5-fold CV, OCTA-500): joint RV+FAZ Jaccard 95.3, Dice 98.1, clDice 91.3; classification accuracy 95.2 vs 94.1 (FAZ-only) vs 89.3 (no segmentation) (also in the collapsed block of `docs/RESULTS.md`). Re-runs are logged above, not mixed into this line; the thesis Dice most likely is the background-dominated 3-channel micro-average (`docs/METHOD.md`).
+Reference, thesis PDF: Table 4.1 (segmentation, stated to be obtained by 5-fold cross-validation): joint RV+FAZ Jaccard 95.3, Dice 98.1, clDice 91.3; Table 4.2 (classification; the text shows train / validation / test confusion matrices and does not state cross-validation or the split ratio): accuracy 95.2 (RV+FAZ) vs 94.1 (FAZ-only) vs 89.3 (no segmentation). Re-runs are logged above, not mixed into this line. Accuracy and balanced accuracy are never to be compared across thesis and re-run: see `docs/CLAIMS.md`. The thesis' Dice averaging is not specified in its text (hypothesis: background-dominated micro-average); the thesis itself concludes that segmenting superficial vessels did not substantially improve classification (PDF p. 41).
 
 ## Skills demonstrated
 | Skill | What was done | Evidence (file or commit) |
@@ -54,18 +53,17 @@ Reference, thesis PDF Tables 4.1 and 4.2 (5-fold CV, OCTA-500): joint RV+FAZ Jac
 | Cloud GPU training | Kaggle notebooks, bundle script, multi-run presets | `kaggle/MultitaskOCTA_kaggle_multirun.ipynb` (`cb32b83`), `kaggle/make_bundles.sh` (`f11c5d9`) |
 | Error analysis and interpretation | Class activation maps, image-frame ablation, epoch-selection rules, FAZ/background channel analysis | `analysis/gradcam_check.py` (`9062cf1`), `analysis/epoch_selection.py` (`61a1aa4`), `analysis/faz_channel_check.py` (`87d7fe4`) |
 | Packaging and model documentation | Inference module, model card, GitHub release with weights | `octa/predict.py`, `docs/MODEL_CARD.md` (`c924ba8`), release v1.0 |
-| Technical writing | README for readers, method map, one-page summary | `README.md`, `docs/METHOD.md`, `docs/SUMMARY_FOR_SUPERVISORS.md` |
+| Technical writing | README for readers, method map, one-page summary, claims table with safe and unsafe wording | `README.md`, `docs/METHOD.md`, `docs/SUMMARY_FOR_SUPERVISORS.md`, `docs/CLAIMS.md` |
 
 ## Open issues
+- Thesis-text checks done 2026-10-23 (`docs/CLAIMS.md`): the README previously said "the thesis said yes"; the thesis reported a gain from segmentation (89.3 → 94.1 / 95.2 %) but itself found the vessel part not substantial. The FAZ-only BSDA-Net arm was not re-run here, so no claim is made about FAZ-only segmentation.
 - B and C seed 3 pending (Kaggle quota); README and `docs/RESULTS.md` show three runs per recipe, the joint recipe has a fourth run that is not yet in the README table.
 - Only 49 AMD scans; the AMD figures have wide uncertainty (`docs/MODEL_CARD.md`).
 - Mac and Kaggle runs are mixed within a recipe (hardware differs; `results_fold*.json` record the device).
 - A common classification-only epoch rule exists for runs made with the logging code only; earlier runs can be compared at fold-mean level (`analysis/epoch_selection.py`).
 - FAZ/background exclusivity in the loss (`analysis/faz_channel_check.txt`).
-- The Main Professional project's GitHub sync may read only `master`; the work is on `fix/thesis-consistency` (the default branch), `master` is intentionally untouched. The link test below decides whether the sync follows the default branch.
 
 ## Next steps
 - Run B and C seed 3 on Kaggle (and optionally the joint recipe with another seed), import them, update README and `docs/RESULTS.md` to four runs per recipe, regenerate `Figs/findings.png` (`analysis/make_figures.py`), run `analysis/oof_rule.py`.
-- Link test: ask the Main Professional chat to read `docs/STATUS.md` from the synced repo and report the line "link test 2026-10-23".
-- Refresh the CV and LinkedIn text from this repository (local drafts, not in git).
+- Hand `docs/CLAIMS.md` to the Main Professional project for CV and LinkedIn text; no local CV drafts.
 - Then continue with the Vision AI roadmap (Stage 1).
