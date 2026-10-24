@@ -32,7 +32,7 @@ Pooled out-of-fold predictions (364 scans, 95 % bootstrap interval): accuracy 0.
 - One dataset, one device type, no external validation; 49 AMD scans only, so the AMD figures have wide uncertainty.
 - Field of view and class are confounded (AMD scans are mostly 6 mm). A model trained on a common 3 mm field of view performs alike, but both models change their decisions strongly when the outer part of the image is replaced by grey, so they are sensitive to the image frame (`analysis/gradcam_results.txt`).
 - Only the superficial B5 projection is used; AMD mainly changes the outer retina, which this input does not show. Probabilities are not calibrated.
-- Whether the segmentation tasks improve the classification could not be shown: a classifier trained without segmentation, and a joint model trained on shuffled masks, reach the same accuracy within the run-to-run spread (`docs/SUMMARY_FOR_SUPERVISORS.md`).
+- Whether the segmentation tasks improve the classification could not be shown: a classifier trained without segmentation reaches the same accuracy as the joint model within the run-to-run spread, and a joint model trained on shuffled masks is lower on average but not significantly so (`docs/SUMMARY_FOR_SUPERVISORS.md`).
 
 ## Weights
 `fold0.pt` … `fold4.pt` (322 MB each) and `stats.json`, from the repository's GitHub release; they are not in the git history. Create them from a run with `python -m octa.predict export --run runs/<run> --data Datasets/processed_OCTA500/ILM_OPL_large --out weights/<name>`.

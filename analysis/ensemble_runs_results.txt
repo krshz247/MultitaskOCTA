@@ -10,7 +10,8 @@
   single run ILM_OPL_large_cv40reg_shufmask       balanced acc 0.762  acc 0.805
   single run ILM_OPL_large_cv40reg_shufmask_s1    balanced acc 0.659  acc 0.717
   single run ILM_OPL_large_cv40reg_shufmask_s2    balanced acc 0.748  acc 0.786
-  mean single 0.723 | ensemble of 2 (mean over 3 pairs) 0.763 | ensemble of all 3: 0.781
+  single run ILM_OPL_large_cv40reg_shufmask_s3    balanced acc 0.692  acc 0.684
+  mean single 0.715 | ensemble of 2 (mean over 6 pairs) 0.754 | ensemble of all 4: 0.782
 
 === C_plain
   single run ILM_OPL_large_cls40reg               balanced acc 0.747  acc 0.786
@@ -20,8 +21,8 @@
 
 agreement of hard predictions between two runs (fraction of the 364 scans with the same predicted class; mean over pairs)
   A_joint        vs A_joint        0.788  (6 pair(s))
-  A_joint        vs B_shuffled     0.755  (12 pair(s))
+  A_joint        vs B_shuffled     0.754  (16 pair(s))
   A_joint        vs C_plain        0.796  (12 pair(s))
-  B_shuffled     vs B_shuffled     0.788  (3 pair(s))
-  B_shuffled     vs C_plain        0.781  (9 pair(s))
+  B_shuffled     vs B_shuffled     0.762  (6 pair(s))
+  B_shuffled     vs C_plain        0.768  (12 pair(s))
   C_plain        vs C_plain        0.850  (3 pair(s))

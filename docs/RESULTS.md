@@ -41,8 +41,8 @@ segmentation metrics on the validation fold, which for the shuffled-mask and no-
 
 **What the experiments say** (details, uncertainty and caveats in `docs/METHOD.md` and `docs/SUMMARY_FOR_SUPERVISORS.md`):
 - Segmentation of the FAZ and the large vessels is accurate and stable (vessel Dice 0.79 ± 0.004 over runs; clDice 0.86 reflects vessel connectivity).
-- Classification reaches about 0.75–0.77 balanced accuracy with large fold-to-fold spread (only 49 AMD scans). **The segmentation tasks bring no measurable benefit:** the joint model, the joint model trained
-  on shuffled masks (no valid segmentation information) and a plain regularised classifier are equal within the run-to-run spread (paired difference joint − plain ≈ 0.00, 95 % interval ±0.06).
+- Classification reaches about 0.75–0.77 balanced accuracy with large fold-to-fold spread (only 49 AMD scans). **The segmentation tasks bring no measurable benefit over a plain regularised classifier:** joint model and classifier are equal within the run-to-run spread (paired difference ≈ 0.00, 95 % interval ±0.06). The joint model trained
+  on shuffled masks (no valid segmentation information) averages lower under the pipeline's epoch rule (0.715 vs 0.766 pooled balanced accuracy over four runs each, Welch p = 0.12) and within 0.014 under classification-only epoch rules, so a small effect of the mask content can neither be shown nor excluded.
   The auxiliary losses act as a regulariser; the stop-gradient and no-segmentation-loss variants are lower, but are single runs and were not repeated.
 - A single run is not enough to decide any of this: the shuffled-mask recipe gave 0.762, 0.659 and 0.748 pooled balanced accuracy, and two runs of the same recipe agree on only 79–85 % of the scans.
 - Field of view: 6 mm scans hold 88 % of the AMD cases. Training on a common 3 mm field of view gives results within the noise, so the model does not need the scale cue; both model families do change their decisions
