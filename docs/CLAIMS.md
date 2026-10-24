@@ -11,8 +11,8 @@ Thesis = `TUM_Thesis.pdf` (K. Zargari, TUM, 2023). Branch `fix/thesis-consistenc
 | Thesis, ResNeSt50 without segmentation, Table 4.2 | same | 89.3 % | not reported | thesis-printed |
 | Thesis, BSDA-Net (FAZ Seg + Cls), Table 4.2 | same | 94.1 % | not reported | thesis-printed |
 | Re-run, joint model, thesis hyper-parameters (1 run) | class-stratified 5-fold CV, 364 scans, test folds, 40 epochs | 0.819 ± 0.036 | 0.763 ± 0.035 | re-run: `docs/RESULTS.md`, `README.md` |
-| Re-run, joint model, regularised (3 runs, mean ± sd over runs) | same | 0.788 ± 0.014 | 0.763 ± 0.021 | re-run: `docs/RESULTS.md`, `analysis/epoch_selection_results.txt` |
-| Re-run, classification-only ResNeSt50, regularised (3 runs) | same | 0.819 ± 0.030 | 0.759 ± 0.017 | re-run: `docs/RESULTS.md`, `analysis/epoch_selection_results.txt` |
+| Re-run, joint model, regularised (4 runs, mean ± sd over runs) | same | 0.790 ± 0.012 | 0.765 ± 0.018 | re-run: `docs/RESULTS.md`, `analysis/epoch_selection_results.txt` |
+| Re-run, classification-only ResNeSt50, regularised (4 runs) | same | 0.820 ± 0.024 | 0.750 ± 0.023 | re-run: `docs/RESULTS.md`, `analysis/epoch_selection_results.txt` |
 
 **Like-for-like comparison:** the thesis' 95.2 % is an *accuracy*, so the only comparable re-run number is *accuracy*: about 0.79–0.82 (joint model). It is still not the same protocol (the thesis' split is not described; the re-run uses stratified cross-validation with held-out test folds). Balanced accuracy (0.76) is **never** to be compared with the thesis' 95.2 %; the thesis reports no balanced accuracy. The class imbalance (251 Normal / 64 DR / 49 AMD) makes accuracy higher than balanced accuracy.
 
