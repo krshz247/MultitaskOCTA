@@ -30,3 +30,4 @@ Which of the two happens depends on the training seed (the three Kaggle runs dif
 the folds of a run share the seed). Not a platform effect and not slow learning. The vessel Dice does not suffer (vessel channel 0.00 inside the FAZ).
 Possible remedies (not tried; no new experiments): a mutual-exclusion term between FAZ and background (the existing --exclusion handles FAZ/vessel only),
 a softmax over the three channels, or reporting the thresholded FAZ Dice. The classifier is not affected (it uses decoder features, not the argmax map).
+Update 2026-10-24: the option --faz_bg_exclusion was tested on fold 0, seeds 2 and 3 (analysis/faz_bg_exclusion_test.txt): it removes this error (background probability inside the FAZ 1.00 -> 0.00-0.01) but creates argmax false positives outside the FAZ, so the argmax FAZ Dice does not improve. It is not a fix for the argmax FAZ Dice.

@@ -1,7 +1,7 @@
 # MultitaskOCTA — status
 
-Last updated: 2026-10-24 — classification-only seed 3 imported; every main recipe now has four runs; README, results tables, figure and claims updated.
-Branch: fix/thesis-consistency · Commit: e26669a (the commit this status describes; the commit that adds this file sits on top of it)
+Last updated: 2026-10-24 — test of the FAZ/background option on Kaggle done: it removes the diagnosed error but does not improve the argmax FAZ Dice.
+Branch: fix/thesis-consistency · Commit: 79e34a1 (the commit this status describes; the commit that adds this file sits on top of it)
 
 ## Current state
 - Works:
@@ -13,7 +13,7 @@ Branch: fix/thesis-consistency · Commit: e26669a (the commit this status descri
   - The golden regression job is manual-only on GitHub (`workflow_dispatch`): the tiny trainings diverge on GitHub's CPUs (commit `11bae19`, `.github/workflows/tests.yml`).
   - `legacy/` scripts are not part of the pipeline; several do not import (`legacy/README.md`).
   - Runs with logged test probabilities (needed for pooled tests under one epoch rule) exist only for the shuffled-mask and classification-only seed-3 runs; the joint recipe has none (`analysis/oof_rule.py`).
-  - The FAZ channel and the background channel are not mutually exclusive in the loss; in two of four joint runs this lowers the argmax FAZ Dice (`analysis/faz_channel_check.txt`). A fix exists as the option `--faz_bg_exclusion <weight>` (off by default; `octa/losses.py`, `tests/test_core.py`, `docs/OPTIONS.md`); it has been run only on synthetic CPU data (`tests/test_golden.py`), not yet on the real data. The default objective is unchanged: all 36 tests pass at `GOLDEN_TOL=1e-9`.
+  - The FAZ channel and the background channel are not mutually exclusive in the loss; in two of four joint runs this lowers the argmax FAZ Dice (`analysis/faz_channel_check.txt`). The option `--faz_bg_exclusion 1.0` (`octa/losses.py`, off by default) removes that error but creates argmax false positives outside the FAZ; on fold 0, seeds 2 and 3 the argmax FAZ Dice does not improve (`analysis/faz_bg_exclusion_test.txt`). Not fixed; the thresholded FAZ Dice (0.93 in every run) is reported.
 
 ## Environment
 - Python 3.12 (README "Setup"); `requirements-lock.txt` pins the versions tested on Apple Silicon and CPU (e.g. `torch==2.14.1`, `timm==0.9.2`, `segmentation-models-pytorch==0.3.3`, `albumentations==2.0.8`, `kornia==0.8.3`); `requirements-kaggle.txt` (Kaggle image) pins only `segmentation-models-pytorch==0.3.3` and leaves `timm`, `albumentations`, `kornia` unpinned; `requirements.txt` pins `segmentation-models-pytorch==0.3.3` and `torchmetrics==1.6.3`.
@@ -64,7 +64,7 @@ Reference, thesis PDF: Table 4.1 (segmentation, stated to be obtained by 5-fold 
 - FAZ/background exclusivity in the loss (`analysis/faz_channel_check.txt`).
 
 ## Next steps
-- Test the FAZ/background option on Kaggle: fold 0, seeds 2 and 3, `--faz_bg_exclusion 1.0` (one pre-set weight, no tuning); criteria fixed in advance in `kaggle/README.md`.
+- Optional, not planned: a different FAZ/background remedy (smaller weight, boundary-confined penalty, softmax over the channels); the test of the current option is documented in `analysis/faz_bg_exclusion_test.txt`.
 - Optional: one more joint run with the current code (it logs test probabilities), so that all three recipes can be compared pooled under one epoch rule (`analysis/oof_rule.py`).
 - Hand `docs/CLAIMS.md` to the Main Professional project for CV and LinkedIn text; no local CV drafts.
 - Then continue with the Vision AI roadmap (Stage 1).

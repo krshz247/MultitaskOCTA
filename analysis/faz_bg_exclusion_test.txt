@@ -1,0 +1,27 @@
+Test of --faz_bg_exclusion 1.0 (octa/losses.py) against the background channel claiming FAZ pixels   (Kaggle, 2026-10-24; code bundle-d26c7e3)
+Setup fixed before the runs (kaggle/README.md): fold 0 only, seeds 2 and 3, one weight (1.0, no tuning), 40 epochs, controls = the existing seed-2 / seed-3 runs of the
+same recipe on the same platform without the option. Runs: runs/ILM_OPL_large_cv40reg_fazbg_f0_s2, ..._s3 (local, not committed).
+
+Criteria and outcome
+ 1. Mean background probability inside the ground-truth FAZ below 0.5 (controls ~1.0):  MET.  Fix: 0.00 (seed 2), 0.01 (seed 3). Share of FAZ pixels assigned to FAZ by
+    the argmax: 0.99 / 0.99 (controls 0.88 / 0.83).                                          [analysis/faz_channel_check.py]
+ 2. Gap between thresholded and argmax FAZ Dice <= 0.01 in both seeds (controls 0.034, 0.063):  NOT MET.  Fix: 0.031 (seed 2: argmax 0.920, threshold 0.951),
+    0.048 (seed 3: argmax 0.887, threshold 0.935); controls argmax 0.914 / 0.889.            [fold 0, test, best-validation epoch]
+ 3. Vessel Dice within 0.01 of the control (0.790 / 0.791):  MET.  Fix: 0.787 / 0.793.
+
+What happened (analysis/faz_argmax_errors.py, fold-0 test scans):
+  run               argmax FAZ: precision / recall   per-scan Dice | threshold FAZ: precision / recall   Dice | argmax false-positive pixels (share with FAZ prob. < 0.5)
+  seed 2 control      0.995 / 0.879                    0.913         |   0.966 / 0.958                     0.947 |   1241 (0.00)
+  seed 2 option       0.896 / 0.989                    0.920         |   0.966 / 0.963                     0.951 |  35177 (0.71)
+  seed 3 control      0.996 / 0.825                    0.890         |   0.963 / 0.962                     0.952 |   1106 (0.00)
+  seed 3 option       0.852 / 0.986                    0.887         |   0.962 / 0.952                     0.935 |  52035 (0.78)
+Validation FAZ Dice (argmax / threshold) at epochs 3, 6, 9: seed 2 control 0.00/0.07, 0.00/0.87, 0.01/0.89; seed 2 option 0.62/0.07, 0.90/0.89, 0.90/0.92;
+  seed 3 control 0.00/0.86, 0.01/0.91, 0.47/0.90; seed 3 option 0.58/0.84, 0.90/0.91, 0.88/0.91.
+
+Reading: the option removes the diagnosed error (the background channel no longer claims the FAZ: recall of the argmax FAZ rises from 0.83-0.88 to 0.99, and the argmax FAZ
+appears from the first epochs instead of after 12-24), but it creates another one: about 70-80 % of the new argmax false positives (35k-52k pixels over 73 scans) have a FAZ probability
+below 0.5, i.e. the background probability also falls just outside the FAZ and the FAZ channel wins the argmax with a low probability. Net effect on the final argmax FAZ Dice: +0.006
+(seed 2) and -0.002 (seed 3), i.e. none; the thresholded FAZ Dice is unchanged (+0.004) or lower (-0.017). The pre-set criterion 2 is therefore not met and the option is NOT a fix for
+the argmax FAZ Dice; it trades a recall error for a precision error. Not tried (no tuning, one weight, two seeds, one fold): a smaller weight, a penalty confined to the FAZ boundary,
+a softmax over the three channels, or reporting the thresholded FAZ Dice (0.93 in every run), which the repository already does. Classification on fold 0 (not a claim): balanced accuracy
+0.716 -> 0.716 (seed 2), 0.704 -> 0.784 (seed 3); one fold, within the run-to-run noise.
