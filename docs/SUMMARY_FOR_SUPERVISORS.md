@@ -31,4 +31,4 @@ Does the joint model classify better *because* it has learned FAZ/vessel segment
 * Superficial B5 projection only; AMD mainly changes the outer retina, which this input does not show. Features and stacking in the biomarker analysis are exploratory.
 
 ## Open
-Seed repeats (3 seeds × joint regularised / shuffled masks / plain regularised) on Kaggle; an input that contains the deeper layers (B6, 3D) would be the natural next test of whether segmentation of the *relevant* structure can help AMD.
+The seed repeats are done (four runs per recipe). Not done: the FAZ-only arm of the thesis' own comparison (94.1 %), the ablations beyond single runs (stop-gradient, no segmentation loss), a joint run that logs test probabilities (pooled comparison of all three recipes under one epoch rule), and the FAZ/background issue (the tested loss option is not a fix, `analysis/faz_bg_exclusion_test.txt`). An input that contains the deeper layers (B6, 3D) would be the natural next test of whether segmentation of the *relevant* structure can help AMD.

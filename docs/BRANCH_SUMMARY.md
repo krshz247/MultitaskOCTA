@@ -38,7 +38,7 @@ Thesis numbers are not treated as targets.
 `octa/predict.py`: image in, class probabilities and FAZ / vessel masks out (average of the five fold models); `docs/MODEL_CARD.md` describes the model, its data and its limits.
 
 ## Review checklist
-* `python -m unittest discover -s tests` (33 tests; `SKIP_SLOW_TESTS=1` for the fast ones) — passes; CI (`.github/workflows/tests.yml`) runs lint and the fast tests.
+* `python -m unittest discover -s tests` (36 tests; `SKIP_SLOW_TESTS=1` for the fast ones) — passes; CI (`.github/workflows/tests.yml`) runs lint and the fast tests.
 * `python run_experiment.py configs/joint_cv40.yaml --dry-run` prints the commands.
 * Files of interest: `octa/losses.py`, `octa/joint_training.py`, `octa/metrics.py`, `octa/data/augment.py`, `octa/predict.py`, `Preprocessing/build_processed_octa500.py`, `docs/METHOD.md`.
 * Large artefacts (`runs*/`, `Datasets/`, `kaggle_upload/`, virtual environments) are git-ignored.

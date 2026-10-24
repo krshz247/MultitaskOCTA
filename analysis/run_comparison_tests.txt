@@ -1,0 +1,6 @@
+A_joint     per-run pooled balanced accuracy 0.747 0.758 0.789 0.771  mean 0.766  sd 0.018
+B_shuffled  per-run pooled balanced accuracy 0.762 0.659 0.748 0.692  mean 0.715  sd 0.048
+C_plain     per-run pooled balanced accuracy 0.747 0.762 0.771 0.726  mean 0.751  sd 0.020
+Welch A_joint vs C_plain: mean difference +0.015, t = 1.09, p = 0.32
+Welch A_joint vs B_shuffled: mean difference +0.051, t = 1.99, p = 0.12
+Welch C_plain vs B_shuffled: mean difference +0.037, t = 1.40, p = 0.23
