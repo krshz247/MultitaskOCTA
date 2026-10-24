@@ -1,7 +1,7 @@
 # MultitaskOCTA — status
 
-Last updated: 2026-10-24 — shuffled-mask seed 3 imported (fourth run of that recipe); wording on the segmentation-content question softened; claims table updated.
-Branch: fix/thesis-consistency · Commit: 857ebc3 (the commit this status describes; the commit that adds this file sits on top of it)
+Last updated: 2026-10-24 — classification-only seed 3 imported; every main recipe now has four runs; README, results tables, figure and claims updated.
+Branch: fix/thesis-consistency · Commit: e26669a (the commit this status describes; the commit that adds this file sits on top of it)
 
 ## Current state
 - Works:
@@ -12,7 +12,7 @@ Branch: fix/thesis-consistency · Commit: 857ebc3 (the commit this status descri
 - Broken or untested:
   - The golden regression job is manual-only on GitHub (`workflow_dispatch`): the tiny trainings diverge on GitHub's CPUs (commit `11bae19`, `.github/workflows/tests.yml`).
   - `legacy/` scripts are not part of the pipeline; several do not import (`legacy/README.md`).
-  - Seed 3 of the classification-only recipe does not exist yet (`analysis/ensemble_runs_results.txt` lists 4 runs of the joint and of the shuffled-mask recipe, 3 of the classification-only recipe).
+  - Runs with logged test probabilities (needed for pooled tests under one epoch rule) exist only for the shuffled-mask and classification-only seed-3 runs; the joint recipe has none (`analysis/oof_rule.py`).
   - The FAZ channel and the background channel are not mutually exclusive in the loss; in two of four joint runs this lowers the argmax FAZ Dice (`analysis/faz_channel_check.txt`). A fix exists as the option `--faz_bg_exclusion <weight>` (off by default; `octa/losses.py`, `tests/test_core.py`, `docs/OPTIONS.md`); it has been run only on synthetic CPU data (`tests/test_golden.py`), not yet on the real data. The default objective is unchanged: all 36 tests pass at `GOLDEN_TOL=1e-9`.
 
 ## Environment
@@ -25,19 +25,19 @@ All on OCTA-500, B5 projection, 364 labelled scans (251 Normal / 64 DR / 49 AMD)
 
 | Experiment | Metric | Value | Source |
 |---|---|---|---|
-| Joint model, regularised (3 runs) | FAZ Dice (3-class argmax) / vessel Dice / vessel clDice | 0.916 ± 0.025 / 0.790 ± 0.004 / 0.862 ± 0.004 | `docs/RESULTS.md` |
+| Joint model, regularised (4 runs) | FAZ Dice (3-class argmax) / vessel Dice / vessel clDice | 0.908 ± 0.026 / 0.788 ± 0.006 / 0.859 ± 0.006 | `docs/RESULTS.md` |
 | Same, four runs | FAZ Dice with a 0.5 threshold on the FAZ channel | 0.937 / 0.925 / 0.933 / 0.936 | `analysis/faz_channel_check.txt` |
 | Joint model, per run | pooled out-of-fold balanced accuracy | 0.747 / 0.758 / 0.789 / 0.771 (mean 0.766; ensemble of 4: 0.792) | `analysis/ensemble_runs_results.txt` |
 | Joint model, shuffled masks, per run | pooled out-of-fold balanced accuracy | 0.762 / 0.659 / 0.748 / 0.692 (mean 0.715; ensemble 0.782) | `analysis/ensemble_runs_results.txt` |
-| Classification-only ResNeSt50, regularised, per run | pooled out-of-fold balanced accuracy | 0.747 / 0.762 / 0.771 (mean 0.760; ensemble 0.805) | `analysis/ensemble_runs_results.txt` |
+| Classification-only ResNeSt50, regularised, per run | pooled out-of-fold balanced accuracy | 0.747 / 0.762 / 0.771 / 0.726 (mean 0.751; ensemble 0.801) | `analysis/ensemble_runs_results.txt` |
 | Epoch rule, joint (4 runs) | mean over folds of balanced accuracy: pipeline score / best validation balanced accuracy / last epoch | 0.765 / 0.751 / 0.738 | `analysis/epoch_selection_results.txt` |
 | Epoch rule, shuffled masks (4 runs) | same three rules | 0.717 / 0.737 / 0.736 | `analysis/epoch_selection_results.txt` |
-| Epoch rule, classification-only (3 runs) | same three rules | 0.759 / 0.771 / 0.746 | `analysis/epoch_selection_results.txt` |
+| Epoch rule, classification-only (4 runs) | same three rules | 0.750 / 0.754 / 0.736 | `analysis/epoch_selection_results.txt` |
 | Statistical power | SE of a paired balanced-accuracy difference (364 scans); smallest detectable difference, 80 % power | 0.038; 0.106 | `analysis/power_seeds_results.txt` |
 | Image-frame ablation | balanced accuracy, outer 30 % replaced by grey: joint / classification-only (unchanged: 0.747 / 0.747) | 0.396 / 0.638 | `analysis/gradcam_results.txt` |
 | Biomarkers from predicted masks | balanced accuracy of mask-derived features, regularised joint model | 0.546–0.611 depending on classifier and feature set (logistic regression on predicted-mask features 0.594, with the field of view added 0.611) | `analysis/biomarker_predicted_cv40reg.txt` |
 
-Reading (see `docs/SUMMARY_FOR_SUPERVISORS.md`): the joint model and the plain regularised classifier agree within the run-to-run spread (Welch p = 0.61 on the run values); the shuffled-mask control is lower on average (0.715 vs 0.766, p = 0.12, not significant; 0.737 vs 0.751 and 0.736 vs 0.738 under two classification-only epoch rules), so the effect of correct masks can neither be shown nor excluded. No measurable benefit of the segmentation tasks over a plain regularised classifier. The stop-gradient and no-segmentation-loss ablations are single runs (`docs/RESULTS.md`).
+Reading (see `docs/SUMMARY_FOR_SUPERVISORS.md`): the joint model and the plain regularised classifier agree within the run-to-run spread (0.766 vs 0.751, Welch p = 0.31 on the run values, four runs each); the shuffled-mask control is lower on average (0.715 vs 0.766, p = 0.12, not significant; under two classification-only epoch rules all three recipes lie within 0.017: 0.751 / 0.737 / 0.754 and 0.738 / 0.736 / 0.736), so the effect of correct masks can neither be shown nor excluded. No measurable benefit of the segmentation tasks over a plain regularised classifier. The stop-gradient and no-segmentation-loss ablations are single runs (`docs/RESULTS.md`).
 
 Reference, thesis PDF: Table 4.1 (segmentation, stated to be obtained by 5-fold cross-validation): joint RV+FAZ Jaccard 95.3, Dice 98.1, clDice 91.3; Table 4.2 (classification; the text shows train / validation / test confusion matrices and does not state cross-validation or the split ratio): accuracy 95.2 (RV+FAZ) vs 94.1 (FAZ-only) vs 89.3 (no segmentation). Re-runs are logged above, not mixed into this line. Accuracy and balanced accuracy are never to be compared across thesis and re-run: see `docs/CLAIMS.md`. The thesis' Dice averaging is not specified in its text (hypothesis: background-dominated micro-average); the thesis itself concludes that segmenting superficial vessels did not substantially improve classification (PDF p. 41).
 
@@ -57,7 +57,7 @@ Reference, thesis PDF: Table 4.1 (segmentation, stated to be obtained by 5-fold 
 
 ## Open issues
 - Thesis-text checks done 2026-10-23 (`docs/CLAIMS.md`): the README previously said "the thesis said yes"; the thesis reported a gain from segmentation (89.3 → 94.1 / 95.2 %) but itself found the vessel part not substantial. The FAZ-only BSDA-Net arm was not re-run here, so no claim is made about FAZ-only segmentation.
-- B and C seed 3 pending (Kaggle quota); README and `docs/RESULTS.md` show three runs per recipe, the joint recipe has a fourth run that is not yet in the README table.
+- Every main recipe has four runs (one Mac run, Kaggle seeds 1 to 3); the README and `docs/RESULTS.md` tables cover all four. The stop-gradient and no-segmentation-loss ablations are single runs.
 - Only 49 AMD scans; the AMD figures have wide uncertainty (`docs/MODEL_CARD.md`).
 - Mac and Kaggle runs are mixed within a recipe (hardware differs; `results_fold*.json` record the device).
 - A common classification-only epoch rule exists for runs made with the logging code only; earlier runs can be compared at fold-mean level (`analysis/epoch_selection.py`).
@@ -65,6 +65,6 @@ Reference, thesis PDF: Table 4.1 (segmentation, stated to be obtained by 5-fold 
 
 ## Next steps
 - Test the FAZ/background option on Kaggle: fold 0, seeds 2 and 3, `--faz_bg_exclusion 1.0` (one pre-set weight, no tuning); criteria fixed in advance in `kaggle/README.md`.
-- Run C seed 3 on Kaggle (and optionally the joint recipe with another seed; the shuffled-mask seed 3 is in and logs test probabilities), import it, update the README and `docs/RESULTS.md` tables to four runs per recipe, regenerate `Figs/findings.png` (`analysis/make_figures.py`), run `analysis/oof_rule.py`.
+- Optional: one more joint run with the current code (it logs test probabilities), so that all three recipes can be compared pooled under one epoch rule (`analysis/oof_rule.py`).
 - Hand `docs/CLAIMS.md` to the Main Professional project for CV and LinkedIn text; no local CV drafts.
 - Then continue with the Vision AI roadmap (Stage 1).

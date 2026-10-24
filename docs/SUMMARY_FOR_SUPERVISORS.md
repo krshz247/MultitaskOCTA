@@ -8,13 +8,13 @@ The thesis numbers are not used as targets; the method is re-tested on its own p
 ## Question
 Does the joint model classify better *because* it has learned FAZ/vessel segmentation? The thesis reported 89.3 % accuracy without segmentation and 94.1 % / 95.2 % with FAZ / FAZ + vessel segmentation, and noted itself that the vessel part brought no substantial gain.
 
-## What was found (three training runs per recipe for the three main variants, one run for the two ablations; a fourth run is in progress)
+## What was found (four training runs per recipe for the three main variants, one run for the two ablations)
 | | balanced accuracy (pooled out-of-fold, 95 % interval) |
 |---|---|
-| joint model, regularised | 0.747 · 0.758 · 0.789 (three runs, mean 0.765; interval of one run ≈ ±0.06) |
-| same, but trained on shuffled masks (no valid segmentation information) | 0.762 · 0.659 · 0.748 (mean 0.723) |
-| classification-only ResNeSt50, same regularisation | 0.747 · 0.762 · 0.771 (mean 0.760) |
-| average of the three runs' probabilities (joint / shuffled / plain) | 0.784 / 0.781 / 0.805 |
+| joint model, regularised | 0.747 · 0.758 · 0.789 · 0.771 (four runs, mean 0.766; interval of one run ≈ ±0.06) |
+| same, but trained on shuffled masks (no valid segmentation information) | 0.762 · 0.659 · 0.748 · 0.692 (mean 0.715) |
+| classification-only ResNeSt50, same regularisation | 0.747 · 0.762 · 0.771 · 0.726 (mean 0.751) |
+| average of the four runs' probabilities (joint / shuffled / plain) | 0.792 / 0.782 / 0.801 |
 | joint, classifier gradient stopped at the decoder features | 0.658 [0.597, 0.722] |
 | joint, segmentation loss switched off | 0.684 [0.624, 0.741] |
 

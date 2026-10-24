@@ -7,14 +7,14 @@ See the README for the summary. Everything below is 5-fold cross-validation on 3
 Own results of this implementation, 5-fold cross-validation on the 364 labelled OCTA-500 scans (Normal / DR / AMD), B5 en-face projection,
 ground truth = GT_FAZ + GT_LargeVessel, 40 epochs per fold, test metrics at the best-validation epoch (`configs/*.yaml`). The thesis numbers are **not** used as targets
 (see the note below the tables). A single training run varies by about ±0.03 in balanced accuracy (pooled) and 5–9 points per fold, so the three main recipes were each
-trained **three times** (one run on the Mac, two Kaggle runs with seeds 1 and 2); the tables give mean ± sd over the runs of the fold-averaged metric.
+trained **four times** (one run on the Mac, three Kaggle runs with seeds 1 to 3); the tables give mean ± sd over the runs of the fold-averaged metric.
 Rows marked "1 run" are single runs and cannot be separated from that noise.
 
 **Segmentation** (per image, class-wise):
 
 | model | runs | FAZ Dice | vessel Dice | vessel clDice | Dice incl. background* |
 |---|---|---|---|---|---|
-| joint RV + FAZ model, regularised (`joint_regularised`) | 3 | 0.916 ± 0.025 | 0.790 ± 0.004 | 0.862 ± 0.004 | 0.959 ± 0.005 |
+| joint RV + FAZ model, regularised (`joint_regularised`) | 4 | 0.908 ± 0.026 | 0.788 ± 0.006 | 0.859 ± 0.006 | 0.956 ± 0.006 |
 | joint RV + FAZ model, thesis settings (`joint_cv40`) | 1 | 0.926 ± 0.009 | 0.787 ± 0.011 | 0.857 ± 0.011 | 0.962 ± 0.003 |
 | common field of view (`joint_common_fov`) | 1 | 0.933 ± 0.018 | 0.738 ± 0.012 | 0.826 ± 0.012 | 0.956 ± 0.003 |
 
@@ -25,10 +25,10 @@ Rows marked "1 run" are single runs and cannot be separated from that noise.
 
 | model | runs | accuracy | balanced accuracy | macro-F1 | AMD recall | balanced acc., epoch chosen on validation balanced acc. |
 |---|---|---|---|---|---|---|
-| joint model, regularised | 3 | 0.788 ± 0.014 | 0.763 ± 0.021 | 0.715 ± 0.016 | 0.73 ± 0.05 | 0.753 ± 0.022 |
-| joint model, regularised, **shuffled masks** (segmentation supervision meaningless) | 3 | 0.771 ± 0.045 | 0.726 ± 0.052 | 0.690 ± 0.058 | 0.67 ± 0.17 | 0.749 ± 0.017 |
-| classification-only ResNeSt50, regularised | 3 | 0.819 ± 0.030 | 0.759 ± 0.017 | 0.742 ± 0.032 | 0.63 ± 0.04 | 0.771 ± 0.004 |
-| average of the three runs' probabilities (pooled out-of-fold, balanced acc.): joint / shuffled / classification-only | | | 0.784 / 0.781 / 0.805 | | | |
+| joint model, regularised | 4 | 0.790 ± 0.012 | 0.765 ± 0.018 | 0.719 ± 0.015 | 0.73 ± 0.04 | 0.751 ± 0.019 |
+| joint model, regularised, **shuffled masks** (segmentation supervision meaningless) | 4 | 0.749 ± 0.057 | 0.717 ± 0.047 | 0.672 ± 0.059 | 0.70 ± 0.15 | 0.737 ± 0.028 |
+| classification-only ResNeSt50, regularised | 4 | 0.820 ± 0.024 | 0.750 ± 0.023 | 0.737 ± 0.027 | 0.61 ± 0.05 | 0.754 ± 0.035 |
+| average of the four runs' probabilities (pooled out-of-fold, balanced acc.): joint / shuffled / classification-only | | | 0.792 / 0.782 / 0.801 | | | |
 | joint model, thesis settings | 1 | 0.819 ± 0.036 | 0.763 ± 0.035 | 0.740 ± 0.038 | 0.63 | |
 | classification-only ResNeSt50, no regularisation | 1 | 0.799 ± 0.062 | 0.687 ± 0.068 | 0.689 ± 0.074 | 0.49 | |
 | joint, classifier gradient stopped at the decoder features | 1 | 0.722 ± 0.090 | 0.656 ± 0.079 | 0.623 ± 0.096 | 0.53 | 0.667 |
@@ -41,10 +41,10 @@ segmentation metrics on the validation fold, which for the shuffled-mask and no-
 
 **What the experiments say** (details, uncertainty and caveats in `docs/METHOD.md` and `docs/SUMMARY_FOR_SUPERVISORS.md`):
 - Segmentation of the FAZ and the large vessels is accurate and stable (vessel Dice 0.79 ± 0.004 over runs; clDice 0.86 reflects vessel connectivity).
-- Classification reaches about 0.75–0.77 balanced accuracy with large fold-to-fold spread (only 49 AMD scans). **The segmentation tasks bring no measurable benefit over a plain regularised classifier:** joint model and classifier are equal within the run-to-run spread (paired difference ≈ 0.00, 95 % interval ±0.06). The joint model trained
-  on shuffled masks (no valid segmentation information) averages lower under the pipeline's epoch rule (0.715 vs 0.766 pooled balanced accuracy over four runs each, Welch p = 0.12) and within 0.014 under classification-only epoch rules, so a small effect of the mask content can neither be shown nor excluded.
+- Classification reaches about 0.75–0.77 balanced accuracy with large fold-to-fold spread (only 49 AMD scans). **The segmentation tasks bring no measurable benefit over a plain regularised classifier:** joint model and classifier are equal within the run-to-run spread (paired difference ≈ 0.00, 95 % interval ±0.06; pooled balanced accuracy 0.766 vs 0.751 over four runs each, Welch p = 0.31). The joint model trained
+  on shuffled masks (no valid segmentation information) averages lower under the pipeline's epoch rule (0.715 vs 0.766 pooled balanced accuracy over four runs each, Welch p = 0.12) and within 0.017 under classification-only epoch rules (all three recipes: 0.751 / 0.737 / 0.754 for best validation balanced accuracy), so a small effect of the mask content can neither be shown nor excluded.
   The auxiliary losses act as a regulariser; the stop-gradient and no-segmentation-loss variants are lower, but are single runs and were not repeated.
-- A single run is not enough to decide any of this: the shuffled-mask recipe gave 0.762, 0.659 and 0.748 pooled balanced accuracy, and two runs of the same recipe agree on only 79–85 % of the scans.
+- A single run is not enough to decide any of this: the shuffled-mask recipe gave 0.762, 0.659, 0.748 and 0.692 pooled balanced accuracy, and two runs of the same recipe agree on only 76–85 % of the scans.
 - Field of view: 6 mm scans hold 88 % of the AMD cases. Training on a common 3 mm field of view gives results within the noise, so the model does not need the scale cue; both model families do change their decisions
   strongly when the outer part of the scan is replaced by grey, i.e. they are sensitive to the image frame (`analysis/gradcam_results.txt`). Vessel disconnection is not a disease cue the classifier relies on.
 - Dense capillary labels (`GT_Capillary`) make the soft-clDice loss collapse to an all-vessel prediction; the thesis' large-vessel ground truth does not.

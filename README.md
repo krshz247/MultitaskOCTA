@@ -14,7 +14,7 @@ Technische Universität München, Biomedical Physics, 2023. Built on [BSDA-Net](
 
 **What I found.**
 - Segmentation works: FAZ Dice ≈ 0.93 in every run with a 0.5 threshold (0.88 with the stricter 3-class argmax in two of four runs, where the background channel also claims the FAZ pixels), vessel Dice ≈ 0.79, clDice ≈ 0.86.
-- Classification reaches 0.75–0.77 balanced accuracy on 364 scans (only 49 AMD). **The segmentation tasks bring no measurable benefit over a plain regularised classifier:** the two agree within the run-to-run spread (about ±0.03). The same model trained on shuffled masks is lower on average under the pipeline's epoch rule (0.72 vs 0.77, four runs each, not significant) and within 0.02 under classification-only epoch rules, so a small effect of the mask content can neither be shown nor excluded. The auxiliary losses behave as a regulariser.
+- Classification reaches 0.75–0.77 balanced accuracy on 364 scans (only 49 AMD). **The segmentation tasks bring no measurable benefit over a plain regularised classifier:** the two agree within the run-to-run spread (about ±0.03). The same model trained on shuffled masks is lower on average under the pipeline's epoch rule (0.72 vs 0.77, four runs each, not significant) and within 0.02 under classification-only epoch rules, as is the plain classifier (0.75), so a small effect of the mask content can neither be shown nor excluded. The auxiliary losses behave as a regulariser.
 - A single run is not enough to see this: the same recipe gave 0.66 to 0.76 balanced accuracy across seeds.
 
 <p align="center">
@@ -60,19 +60,19 @@ The model (below) has a shared encoder with three decoders (segmentation of FAZ 
 
 ## Results in brief
 
-Own results of this implementation, 5-fold cross-validation, B5 projection, 40 epochs per fold, every number on scans the model has not seen. Mean ± sd over runs of the fold-averaged metric; each main recipe was trained three times (one Mac run, Kaggle seeds 1 and 2). The thesis numbers are not used as targets.
+Own results of this implementation, 5-fold cross-validation, B5 projection, 40 epochs per fold, every number on scans the model has not seen. Mean ± sd over runs of the fold-averaged metric; each main recipe was trained four times (one Mac run, Kaggle seeds 1 to 3). The thesis numbers are not used as targets.
 
 | model | runs | accuracy | balanced accuracy | macro-F1 | AMD recall |
 |---|---|---|---|---|---|
-| joint model, regularised | 3 | 0.788 ± 0.014 | 0.763 ± 0.021 | 0.715 ± 0.016 | 0.73 ± 0.05 |
-| joint model, shuffled masks (segmentation supervision meaningless) | 3 | 0.771 ± 0.045 | 0.726 ± 0.052 | 0.690 ± 0.058 | 0.67 ± 0.17 |
-| classification-only ResNeSt50, regularised | 3 | 0.819 ± 0.030 | 0.759 ± 0.017 | 0.742 ± 0.032 | 0.63 ± 0.04 |
+| joint model, regularised | 4 | 0.790 ± 0.012 | 0.765 ± 0.018 | 0.719 ± 0.015 | 0.73 ± 0.04 |
+| joint model, shuffled masks (segmentation supervision meaningless) | 4 | 0.749 ± 0.057 | 0.717 ± 0.047 | 0.672 ± 0.059 | 0.70 ± 0.15 |
+| classification-only ResNeSt50, regularised | 4 | 0.820 ± 0.024 | 0.750 ± 0.023 | 0.737 ± 0.027 | 0.61 ± 0.05 |
 
-Segmentation of the joint model: FAZ Dice 0.916 ± 0.025 (3-class argmax; 0.93 with a 0.5 threshold in every run), vessel Dice 0.790 ± 0.004, vessel clDice 0.862 ± 0.004. All tables, the ablations, the epoch-rule comparison and the reading of them: `docs/RESULTS.md`; one-page summary: `docs/SUMMARY_FOR_SUPERVISORS.md`.
+Segmentation of the joint model (four runs): FAZ Dice 0.908 ± 0.026 (3-class argmax; 0.933 ± 0.005 with a 0.5 threshold), vessel Dice 0.788 ± 0.006, vessel clDice 0.859 ± 0.006. All tables, the ablations, the epoch-rule comparison and the reading of them: `docs/RESULTS.md`; one-page summary: `docs/SUMMARY_FOR_SUPERVISORS.md`.
 
 **Reading it.**
-- The joint model and the plain regularised classifier are equal within the run-to-run spread (pooled balanced accuracy 0.766 vs 0.760 over four and three runs). The shuffled-mask control averages 0.715 over four runs (Welch p = 0.12 against the joint model; the gap is 0.014 and 0.002 under classification-only epoch rules). The stop-gradient and no-segmentation-loss ablations are lower but are single runs and were not repeated.
-- Two runs of the same recipe agree on only 79–85 % of the scans, so one run cannot decide any of these comparisons.
+- The joint model and the plain regularised classifier are equal within the run-to-run spread (pooled balanced accuracy 0.766 vs 0.751, four runs each; Welch p = 0.31). The shuffled-mask control averages 0.715 (p = 0.12 against the joint model; under classification-only epoch rules the three recipes lie within 0.017: 0.751 / 0.737 / 0.754 for best validation balanced accuracy, 0.738 / 0.736 / 0.736 for the last epoch). The stop-gradient and no-segmentation-loss ablations are lower but are single runs and were not repeated.
+- Two runs of the same recipe agree on only 76–85 % of the scans, so one run cannot decide any of these comparisons.
 - The reported epoch matters: the default selection score uses segmentation metrics, which are meaningless for the shuffled-mask variant, so `docs/RESULTS.md` also gives all variants under one classification-only rule.
 - The models do not need the field of view as a shortcut (6 mm scans hold 88 % of the AMD cases), but both change their decisions strongly when the outer part of the scan is replaced by grey, so they are sensitive to the image frame.
 - Dense capillary labels make the soft-clDice loss collapse to an all-vessel prediction; the thesis' large-vessel labels do not.

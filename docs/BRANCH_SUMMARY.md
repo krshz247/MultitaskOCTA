@@ -28,7 +28,7 @@ implements the thesis, `docs/SUMMARY_FOR_SUPERVISORS.md` for what the experiment
 
 ## Experiments and findings (single-page version: `docs/SUMMARY_FOR_SUPERVISORS.md`; scripts and reports: `analysis/`)
 Segmentation is accurate and stable (FAZ Dice ≈ 0.93 with a 0.5 threshold; 0.88–0.93 with the 3-class argmax depending on the run; vessel Dice ≈ 0.79, clDice ≈ 0.86). Each of the three main recipes (joint model, joint model on shuffled masks, plain classifier,
-all regularised) was trained three times: classification reaches ≈ 0.75–0.77 balanced accuracy; joint model and plain classifier are equal within the run-to-run spread (about ±0.03) and the shuffled-mask control is lower on average but not significantly so, so the segmentation tasks
+all regularised) was trained four times: classification reaches ≈ 0.75–0.77 balanced accuracy; joint model and plain classifier are equal within the run-to-run spread (about ±0.03) and the shuffled-mask control is lower on average but not significantly so, so the segmentation tasks
 bring **no measurable classification benefit**; the auxiliary losses act as a regulariser. The choice of the reported epoch matters (the pipeline score uses segmentation metrics that are meaningless for the
 shuffled-mask variant), so classification comparisons are also given under one classification-only rule. The field of view is not what the networks use, though both are sensitive to the image frame;
 vessel disconnection is not a disease cue; dense capillary labels make soft-clDice collapse; clDice share 0.8 breaks training; dropping fragments < 30 px repairs connectivity metrics for free.

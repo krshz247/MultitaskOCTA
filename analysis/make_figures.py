@@ -20,8 +20,8 @@ os.chdir(ROOT)
 os.makedirs("Figs", exist_ok=True)
 
 GROUPS = [("Joint model", "#1b7f79", ["cv40reg", "cv40reg_s1", "cv40reg_s2", "cv40reg_s3"]),
-          ("Joint model,\nshuffled masks", "#c8661a", ["cv40reg_shufmask", "cv40reg_shufmask_s1", "cv40reg_shufmask_s2"]),
-          ("Classifier only", "#6b4fa0", ["cls40reg", "cls40reg_s1", "cls40reg_s2"])]
+          ("Joint model,\nshuffled masks", "#c8661a", ["cv40reg_shufmask", "cv40reg_shufmask_s1", "cv40reg_shufmask_s2", "cv40reg_shufmask_s3"]),
+          ("Classifier only", "#6b4fa0", ["cls40reg", "cls40reg_s1", "cls40reg_s2", "cls40reg_s3"])]
 SINGLE = [("Stop-gradient", "cv40reg_detach"), ("No segmentation\nloss", "cv40reg_noseg")]
 y = np.load("analysis/oof_probs.npz")["y"]
 bal = lambda r: balanced_accuracy_score(y, np.load(f"runs/ILM_OPL_large_{r}/oof_probs.npy").argmax(1))
