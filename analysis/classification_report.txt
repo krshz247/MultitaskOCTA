@@ -1,0 +1,31 @@
+                                     AUROC Normal     DR    AMD   macro    ECE  Brier
+  ILM_OPL_large_cv40reg                     0.900  0.903  0.853   0.885  0.117  0.360
+  ILM_OPL_large_cv40reg_s1                  0.908  0.905  0.851   0.888  0.129  0.349
+  ILM_OPL_large_cv40reg_s2                  0.912  0.912  0.911   0.912  0.091  0.329
+  ILM_OPL_large_cv40reg_s3                  0.894  0.881  0.873   0.883  0.143  0.369
+A_joint ensemble (4 runs)                   0.933  0.951  0.907   0.930  0.154  0.313   macro AUROC 95 % [0.902, 0.955]
+  ILM_OPL_large_cv40reg_shufmask            0.908  0.900  0.903   0.904  0.161  0.343
+  ILM_OPL_large_cv40reg_shufmask_s1         0.872  0.897  0.799   0.856  0.140  0.433
+  ILM_OPL_large_cv40reg_shufmask_s2         0.905  0.913  0.841   0.886  0.159  0.376
+  ILM_OPL_large_cv40reg_shufmask_s3         0.864  0.847  0.848   0.853  0.107  0.473
+B_shuffled ensemble (4 runs)                0.919  0.920  0.892   0.910  0.199  0.378   macro AUROC 95 % [0.880, 0.938]
+  ILM_OPL_large_cls40reg                    0.914  0.906  0.869   0.896  0.100  0.332
+  ILM_OPL_large_cls40reg_s1                 0.908  0.940  0.889   0.912  0.114  0.283
+  ILM_OPL_large_cls40reg_s2                 0.904  0.936  0.886   0.909  0.120  0.287
+  ILM_OPL_large_cls40reg_s3                 0.902  0.934  0.849   0.895  0.099  0.295
+C_plain ensemble (4 runs)                   0.931  0.950  0.916   0.932  0.149  0.271   macro AUROC 95 % [0.906, 0.954]
+
+confusion matrices of the ensembles (rows = true class Normal / DR / AMD, columns = predicted)
+A_joint: balanced accuracy 0.792
+    207    11    33
+      6    47    11
+      7     2    40
+B_shuffled: balanced accuracy 0.782
+    196    13    42
+      7    48     9
+      7     2    40
+C_plain: balanced accuracy 0.801
+    226     6    19
+      7    53     4
+     13     3    33
+figure: Figs/confusion.png

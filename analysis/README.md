@@ -20,6 +20,7 @@ Result files are written next to the scripts (`*.txt` = printed report, committe
 | `make_figures.py` | Draws the README figures (balanced accuracy per run and recipe, image-frame ablation, predicted masks) from stored results; uses no scan pixels | cached `oof_probs.npy` of the runs, `gradcam_results.json`, optionally exported weights | `Figs/findings.png`, `Figs/predictions.png` |
 | `faz_channel_check.py` | Why does the FAZ Dice of the 3-class argmax differ between runs of one recipe? Which channel claims the FAZ pixels (report in `faz_channel_check.txt`) | joint runs with `best_fold0.pt` | printed |
 | `faz_argmax_errors.py` | Precision and recall of the argmax and thresholded FAZ map on the fold-0 test scans; used to read the test of `--faz_bg_exclusion` (report `faz_bg_exclusion_test.txt`) | joint runs with `best_fold0.pt` | printed |
+| `classification_report.py` | One-vs-rest AUROC (with bootstrap interval for the ensembles), pooled confusion matrices, calibration (ECE, Brier) from the cached out-of-fold probabilities; figure `Figs/confusion.png` | cached `oof_probs.npy` of the runs | `classification_report.txt` |
 | `power_seeds.py` | How large must a difference be to be detectable, and what do seed repeats buy? | `oof_probs.npz` | `power_seeds_results.txt` |
 | `postprocess_vessels.py` | Does removing small vessel fragments change the metrics? | joint run | printed |
 

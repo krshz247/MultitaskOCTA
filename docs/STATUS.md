@@ -1,7 +1,7 @@
 # MultitaskOCTA — status
 
-Last updated: 2026-10-24 — test of the FAZ/background option on Kaggle done: it removes the diagnosed error but does not improve the argmax FAZ Dice.
-Branch: fix/thesis-consistency · Commit: 79e34a1 (the commit this status describes; the commit that adds this file sits on top of it)
+Last updated: 2026-10-24 — AUROC, confusion matrices and calibration added from the cached out-of-fold probabilities.
+Branch: fix/thesis-consistency · Commit: 43d377f (the commit this status describes; the commit that adds this file sits on top of it)
 
 ## Current state
 - Works:
@@ -33,6 +33,7 @@ All on OCTA-500, B5 projection, 364 labelled scans (251 Normal / 64 DR / 49 AMD)
 | Epoch rule, joint (4 runs) | mean over folds of balanced accuracy: pipeline score / best validation balanced accuracy / last epoch | 0.765 / 0.751 / 0.738 | `analysis/epoch_selection_results.txt` |
 | Epoch rule, shuffled masks (4 runs) | same three rules | 0.717 / 0.737 / 0.736 | `analysis/epoch_selection_results.txt` |
 | Epoch rule, classification-only (4 runs) | same three rules | 0.750 / 0.754 / 0.736 | `analysis/epoch_selection_results.txt` |
+| AUROC (one-vs-rest, macro) | ensemble of four runs: joint / shuffled masks / classification-only; ECE of the ensembles | 0.930 / 0.910 / 0.932 (95 % intervals overlap); ECE 0.154 / 0.199 / 0.149 | `analysis/classification_report.txt` |
 | Statistical power | SE of a paired balanced-accuracy difference (364 scans); smallest detectable difference, 80 % power | 0.038; 0.106 | `analysis/power_seeds_results.txt` |
 | Image-frame ablation | balanced accuracy, outer 30 % replaced by grey: joint / classification-only (unchanged: 0.747 / 0.747) | 0.396 / 0.638 | `analysis/gradcam_results.txt` |
 | Biomarkers from predicted masks | balanced accuracy of mask-derived features, regularised joint model | 0.546–0.611 depending on classifier and feature set (logistic regression on predicted-mask features 0.594, with the field of view added 0.611) | `analysis/biomarker_predicted_cv40reg.txt` |

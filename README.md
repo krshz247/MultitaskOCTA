@@ -68,7 +68,7 @@ Own results of this implementation, 5-fold cross-validation, B5 projection, 40 e
 | joint model, shuffled masks (segmentation supervision meaningless) | 4 | 0.749 ± 0.057 | 0.717 ± 0.047 | 0.672 ± 0.059 | 0.70 ± 0.15 |
 | classification-only ResNeSt50, regularised | 4 | 0.820 ± 0.024 | 0.750 ± 0.023 | 0.737 ± 0.027 | 0.61 ± 0.05 |
 
-Segmentation of the joint model (four runs): FAZ Dice 0.908 ± 0.026 (3-class argmax; 0.933 ± 0.005 with a 0.5 threshold), vessel Dice 0.788 ± 0.006, vessel clDice 0.859 ± 0.006. All tables, the ablations, the epoch-rule comparison and the reading of them: `docs/RESULTS.md`; one-page summary: `docs/SUMMARY_FOR_SUPERVISORS.md`.
+Segmentation of the joint model (four runs): FAZ Dice 0.908 ± 0.026 (3-class argmax; 0.933 ± 0.005 with a 0.5 threshold), vessel Dice 0.788 ± 0.006, vessel clDice 0.859 ± 0.006. Pooled AUROC of a four-run ensemble is about 0.93 for all three recipes (`docs/RESULTS.md`). All tables, the ablations, the epoch-rule comparison and the reading of them: `docs/RESULTS.md`; one-page summary: `docs/SUMMARY_FOR_SUPERVISORS.md`.
 
 **Reading it.**
 - The joint model and the plain regularised classifier are equal within the run-to-run spread (pooled balanced accuracy 0.766 vs 0.751, four runs each; Welch p = 0.31). The shuffled-mask control averages 0.715 (p = 0.12 against the joint model; under classification-only epoch rules the three recipes lie within 0.017: 0.751 / 0.737 / 0.754 for best validation balanced accuracy, 0.738 / 0.736 / 0.736 for the last epoch). The stop-gradient and no-segmentation-loss ablations are lower but are single runs and were not repeated.

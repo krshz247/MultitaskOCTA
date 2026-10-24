@@ -39,6 +39,17 @@ Rows marked "1 run" are single runs and cannot be separated from that noise.
 The last column re-selects the reported epoch with a classification-only rule (best validation balanced accuracy) for every row. The default rule of the pipeline also uses the
 segmentation metrics on the validation fold, which for the shuffled-mask and no-segmentation variants are meaningless and make their epoch choice partly random with respect to classification.
 
+**AUROC, confusion matrices and calibration** (pooled out-of-fold probabilities of the 364 scans; `analysis/classification_report.txt`; no model is run). One-vs-rest AUROC; "ensemble" = probabilities of the four runs of a recipe averaged.
+
+| recipe | macro AUROC, mean of the four runs | macro AUROC, ensemble [95 % bootstrap] | AUROC Normal / DR / AMD (ensemble) | ECE / Brier (ensemble) |
+|---|---|---|---|---|
+| joint model, regularised | 0.892 | 0.930 [0.902, 0.955] | 0.933 / 0.951 / 0.907 | 0.154 / 0.313 |
+| joint model, shuffled masks | 0.875 | 0.910 [0.880, 0.938] | 0.919 / 0.920 / 0.892 | 0.199 / 0.378 |
+| classification-only, regularised | 0.903 | 0.932 [0.906, 0.954] | 0.931 / 0.950 / 0.916 | 0.149 / 0.271 |
+
+Confusion matrices of the ensembles (`Figs/confusion.png`; rows = true class Normal / DR / AMD): joint 207 / 11 / 33, 6 / 47 / 11, 7 / 2 / 40; shuffled masks 196 / 13 / 42, 7 / 48 / 9, 7 / 2 / 40; classification-only 226 / 6 / 19, 7 / 53 / 4, 13 / 3 / 33.
+The AUROC intervals of the three recipes overlap. AMD is the hardest class for all of them (AMD AUROC 0.89–0.92, 49 scans); the joint model finds more AMD scans (recall 0.82 vs 0.67) at the price of more Normal scans called AMD (33 vs 19 of 251). The probabilities are not calibrated (ECE about 0.15–0.20; label smoothing and class weights are used in training), so they must not be read as risks.
+
 **What the experiments say** (details, uncertainty and caveats in `docs/METHOD.md` and `docs/SUMMARY_FOR_SUPERVISORS.md`):
 - Segmentation of the FAZ and the large vessels is accurate and stable (vessel Dice 0.79 ± 0.004 over runs; clDice 0.86 reflects vessel connectivity).
 - Classification reaches about 0.75–0.77 balanced accuracy with large fold-to-fold spread (only 49 AMD scans). **The segmentation tasks bring no measurable benefit over a plain regularised classifier:** joint model and classifier are equal within the run-to-run spread (paired difference ≈ 0.00, 95 % interval ±0.06; pooled balanced accuracy 0.766 vs 0.751 over four runs each, Welch p = 0.31). The joint model trained
